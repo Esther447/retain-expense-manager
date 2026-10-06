@@ -225,8 +225,119 @@ const getExpenseById = async (req, res) => {
   }
 };
 
+const updateExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      title,
+      amount,
+      category_id,
+      expense_date,
+      payment_method,
+      notes,
+    } = req.body;
+
+    if (
+      !title ||
+      !amount ||
+      !category_id ||
+      !expense_date ||
+      !payment_method
+    ) {
+      return res.status(400).json({
+        message:
+          'Title, amount, category, expense date, and payment method are required',
+      });
+    }
+
+    const category = await pool.query(
+      'SELECT id FROM categories WHERE id = $1',
+      [category_id]
+    );
+
+    if (category.rows.length === 0) {
+      return res.status(400).json({
+        message: 'Category not found',
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE expenses
+       SET
+         title = $1,
+         amount = $2,
+         category_id = $3,
+         expense_date = $4,
+         payment_method = $5,
+         notes = $6,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7 AND user_id = $8
+       RETURNING *`,
+      [
+        title,
+        amount,
+        category_id,
+        expense_date,
+        payment_method,
+        notes || null,
+        id,
+        req.user.id,
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: 'Expense not found',
+      });
+    }
+
+    return res.json({
+      message: 'Expense updated successfully',
+      expense: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Update expense error:', error);
+
+    return res.status(500).json({
+      message: 'Server error while updating expense',
+    });
+  }
+};
+
+const deleteExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `DELETE FROM expenses
+       WHERE id = $1 AND user_id = $2
+       RETURNING id`,
+      [id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: 'Expense not found',
+      });
+    }
+
+    return res.json({
+      message: 'Expense deleted successfully',
+    });
+  } catch (error) {
+    console.error('Delete expense error:', error);
+
+    return res.status(500).json({
+      message: 'Server error while deleting expense',
+    });
+  }
+};
+
 module.exports = {
   createExpense,
   getExpenses,
   getExpenseById,
+  updateExpense,
+  deleteExpense,
 };
