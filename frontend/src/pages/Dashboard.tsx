@@ -1,5 +1,9 @@
+import Navbar from '../components/Navbar';
 function Dashboard() {
   return (
+  <>
+    <Navbar />
+
     <main className="dashboard">
       <header className="dashboard-header">
         <div>
@@ -45,7 +49,8 @@ function Dashboard() {
         <h2>Spending by Category</h2>
         <p>No spending data available yet.</p>
       </section>
-    </main>
+        </main>
+  </>
   );
 }
 

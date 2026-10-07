@@ -1,16 +1,25 @@
 import { FormEvent, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 function Login() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    console.log('Login:', {
+    login({
+      id: 1,
+      name: 'Retain User',
       email,
-      password,
+      role: 'user',
     });
+
+    navigate('/');
   };
 
   return (
