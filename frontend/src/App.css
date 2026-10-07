@@ -214,3 +214,301 @@
     gap: 12px;
   }
 }
+
+.expenses-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.page-header h1 {
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: #6b7280;
+}
+
+.page-header button {
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.expenses-section {
+  background: white;
+  padding: 24px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+}
+
+.expenses-toolbar {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.expenses-toolbar input,
+.expenses-toolbar select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+}
+
+.expenses-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.expenses-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.expenses-table th,
+.expenses-table td {
+  padding: 14px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.expenses-table th {
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.expenses-table td {
+  color: #374151;
+}
+
+.expenses-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 900px) {
+  .expenses-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .expenses-page {
+    padding: 20px 16px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .expenses-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .expenses-section {
+    padding: 16px;
+  }
+}
+
+.form-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.form-card {
+  background: white;
+  padding: 32px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+}
+
+.form-card h1 {
+  margin-bottom: 8px;
+}
+
+.form-card > p {
+  color: #6b7280;
+  margin-bottom: 28px;
+}
+
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.form-actions button {
+  border: none;
+  padding: 11px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cancel-button {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.save-button {
+  background: #2563eb;
+  color: white;
+}
+
+@media (max-width: 600px) {
+  .form-page {
+    padding: 20px 16px;
+  }
+
+  .form-card {
+    padding: 20px;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+}
+
+.budget-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.budget-card {
+  background: white;
+  padding: 24px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+}
+
+.budget-card h2 {
+  margin-bottom: 24px;
+}
+
+.budget-card form button {
+  width: 100%;
+  border: none;
+  padding: 11px;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.budget-stat,
+.budget-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.budget-stat span,
+.budget-status span {
+  color: #6b7280;
+}
+
+.budget-stat strong,
+.budget-status strong {
+  text-align: right;
+}
+
+.budget-status {
+  border-bottom: none;
+}
+
+@media (max-width: 700px) {
+  .budget-page {
+    padding: 20px 16px;
+  }
+
+  .budget-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.profile-card {
+  background: white;
+  padding: 24px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.profile-row:first-child {
+  padding-top: 0;
+}
+
+.profile-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.profile-row span {
+  color: #6b7280;
+}
+
+@media (max-width: 600px) {
+  .profile-page {
+    padding: 20px 16px;
+  }
+
+  .profile-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}

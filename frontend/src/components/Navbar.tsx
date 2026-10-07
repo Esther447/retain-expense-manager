@@ -20,6 +20,7 @@ function Navbar() {
         <Link to="/">Dashboard</Link>
         <Link to="/expenses">Expenses</Link>
         <Link to="/budget">Budget</Link>
+        <Link to="/profile">Profile</Link>
 
         <span>{user?.name}</span>
 
