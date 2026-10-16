@@ -1,8 +1,9 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
 import Navbar from '../components/Navbar';
-import type { Expense } from '../types/Expense';
+import type { Expense, Category } from '../types/Expense';
+import { apiGet, apiDelete } from '../services/api';
 import {
   setSearch,
   setCategory,
@@ -12,95 +13,75 @@ import {
   setEndDate,
 } from '../redux/expenseFilterSlice';
 
+interface ExpensesResponse {
+  expenses: Expense[];
+}
+
+interface CategoriesResponse {
+  categories: Category[];
+}
+
 function Expenses() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const { search, category, paymentMethod, sortBy, startDate, endDate } = useAppSelector(
-    (state) => state.expenseFilter,
-  );
+  const { search, category, paymentMethod, sortBy, startDate, endDate } =
+    useAppSelector((state) => state.expenseFilter);
 
-  const [expenses, setExpenses] = useState<Expense[]>([
-    {
-      id: 1,
-      title: 'Lunch',
-      description: 'Lunch at campus',
-      amount: 5000,
-      category: 'food',
-      date: '2026-10-07',
-      paymentMethod: 'mobile-money',
-      notes: 'Regular lunch',
-    },
-    {
-      id: 2,
-      title: 'Bus Transport',
-      description: 'Transport to campus',
-      amount: 2500,
-      category: 'transport',
-      date: '2026-10-06',
-      paymentMethod: 'cash',
-    },
-    {
-      id: 3,
-      title: 'Internet',
-      description: 'Monthly internet payment',
-      amount: 15000,
-      category: 'other',
-      date: '2026-10-05',
-      paymentMethod: 'mobile-money',
-    },
-    {
-      id: 4,
-      title: 'Programming Course',
-      description: 'Online learning course',
-      amount: 20000,
-      category: 'education',
-      date: '2026-10-03',
-      paymentMethod: 'card',
-    },
-  ]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
+  function loadExpenses() {
+    apiGet<ExpensesResponse>('/expenses?limit=100')
+      .then((data) => setExpenses(data.expenses))
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : 'Failed to load expenses'),
+      )
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadExpenses();
+    apiGet<CategoriesResponse>('/categories').then((data) =>
+      setCategories(data.categories),
+    );
+  }, []);
+
+  async function handleDelete(id: number) {
+    if (!window.confirm('Are you sure you want to delete this expense?')) return;
+    try {
+      await apiDelete(`/expenses/${id}`);
       setExpenses((prev) => prev.filter((e) => e.id !== id));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to delete expense');
     }
-  };
+  }
 
   const filteredExpenses = expenses
     .filter((expense) => {
-      const searchMatches =
-        expense.title.toLowerCase().includes(search.toLowerCase()) ||
-        expense.description.toLowerCase().includes(search.toLowerCase());
+      const searchLower = search.toLowerCase();
+      const matchesSearch =
+        expense.title.toLowerCase().includes(searchLower) ||
+        (expense.notes ?? '').toLowerCase().includes(searchLower);
 
-      const categoryMatches =
-        category === '' || expense.category === category;
+      const matchesCategory =
+        category === '' || String(expense.category_id) === category;
 
-      const paymentMethodMatches =
-        paymentMethod === '' ||
-        expense.paymentMethod === paymentMethod;
+      const matchesPayment =
+        paymentMethod === '' || expense.payment_method === paymentMethod;
 
-      const startDateMatches =
-        startDate === '' || expense.date >= startDate;
+      const matchesStart = startDate === '' || expense.expense_date >= startDate;
+      const matchesEnd = endDate === '' || expense.expense_date <= endDate;
 
-      const endDateMatches =
-        endDate === '' || expense.date <= endDate;
-
-      return searchMatches && categoryMatches && paymentMethodMatches && startDateMatches && endDateMatches;
+      return matchesSearch && matchesCategory && matchesPayment && matchesStart && matchesEnd;
     })
     .sort((a, b) => {
-      if (sortBy === 'date-asc') {
-        return a.date.localeCompare(b.date);
-      }
-
-      if (sortBy === 'amount-desc') {
-        return b.amount - a.amount;
-      }
-
-      if (sortBy === 'amount-asc') {
-        return a.amount - b.amount;
-      }
-
-      return b.date.localeCompare(a.date);
+      if (sortBy === 'date-asc') return a.expense_date.localeCompare(b.expense_date);
+      if (sortBy === 'amount-desc') return b.amount - a.amount;
+      if (sortBy === 'amount-asc') return a.amount - b.amount;
+      return b.expense_date.localeCompare(a.expense_date);
     });
 
   return (
@@ -113,43 +94,38 @@ function Expenses() {
             <h1>Expenses</h1>
             <p>View and manage your personal expenses.</p>
           </div>
-
-          <button
-            type="button"
-            onClick={() => navigate('/expenses/add')}
-          >
+          <button type="button" onClick={() => navigate('/expenses/add')}>
             + Add Expense
           </button>
         </header>
 
         <section className="expenses-section">
+          {error && <p className="error-message">{error}</p>}
+
           <div className="expenses-toolbar">
             <input
               type="search"
               placeholder="Search expenses..."
               aria-label="Search expenses"
               value={search}
-              onChange={(event) => dispatch(setSearch(event.target.value))}
+              onChange={(e) => dispatch(setSearch(e.target.value))}
             />
 
             <select
               value={category}
-              onChange={(event) => dispatch(setCategory(event.target.value))}
+              onChange={(e) => dispatch(setCategory(e.target.value))}
             >
               <option value="">All Categories</option>
-              <option value="food">Food</option>
-              <option value="transport">Transport</option>
-              <option value="education">Education</option>
-              <option value="housing">Housing</option>
-              <option value="health">Health</option>
-              <option value="other">Other</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={String(cat.id)}>
+                  {cat.name}
+                </option>
+              ))}
             </select>
 
             <select
               value={paymentMethod}
-              onChange={(event) =>
-                dispatch(setPaymentMethod(event.target.value))
-              }
+              onChange={(e) => dispatch(setPaymentMethod(e.target.value))}
             >
               <option value="">All Payment Methods</option>
               <option value="cash">Cash</option>
@@ -161,20 +137,20 @@ function Expenses() {
             <input
               type="date"
               value={startDate}
-              onChange={(event) => dispatch(setStartDate(event.target.value))}
+              onChange={(e) => dispatch(setStartDate(e.target.value))}
               aria-label="Start date"
             />
 
             <input
               type="date"
               value={endDate}
-              onChange={(event) => dispatch(setEndDate(event.target.value))}
+              onChange={(e) => dispatch(setEndDate(e.target.value))}
               aria-label="End date"
             />
 
             <select
               value={sortBy}
-              onChange={(event) => dispatch(setSortBy(event.target.value))}
+              onChange={(e) => dispatch(setSortBy(e.target.value))}
             >
               <option value="date-desc">Newest First</option>
               <option value="date-asc">Oldest First</option>
@@ -183,56 +159,59 @@ function Expenses() {
             </select>
           </div>
 
-          <div className="expenses-table-wrapper">
-            <table className="expenses-table">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Category</th>
-                  <th>Amount</th>
-                  <th>Date</th>
-                  <th>Payment Method</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredExpenses.length === 0 ? (
+          {loading ? (
+            <p>Loading expenses...</p>
+          ) : (
+            <div className="expenses-table-wrapper">
+              <table className="expenses-table">
+                <thead>
                   <tr>
-                    <td colSpan={6}>No expenses found.</td>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Payment Method</th>
+                    <th>Actions</th>
                   </tr>
-                ) : (
-                  filteredExpenses.map((expense) => (
-                    <tr key={expense.id}>
-                      <td>{expense.title}</td>
-                      <td>{expense.category}</td>
-                      <td>RWF {expense.amount.toLocaleString()}</td>
-                      <td>{expense.date}</td>
-                      <td>{expense.paymentMethod}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="action-button edit-button"
-                          onClick={() =>
-                            navigate('/expenses/edit', { state: expense })
-                          }
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="action-button delete-button"
-                          onClick={() => handleDelete(expense.id)}
-                        >
-                          Delete
-                        </button>
-                      </td>
+                </thead>
+                <tbody>
+                  {filteredExpenses.length === 0 ? (
+                    <tr>
+                      <td colSpan={6}>No expenses found.</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    filteredExpenses.map((expense) => (
+                      <tr key={expense.id}>
+                        <td>{expense.title}</td>
+                        <td>{expense.category_name}</td>
+                        <td>RWF {Number(expense.amount).toLocaleString()}</td>
+                        <td>{new Date(expense.expense_date).toLocaleDateString()}</td>
+                        <td>{expense.payment_method}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="action-button edit-button"
+                            onClick={() =>
+                              navigate('/expenses/edit', { state: expense })
+                            }
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="action-button delete-button"
+                            onClick={() => handleDelete(expense.id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       </main>
     </>

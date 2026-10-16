@@ -1,77 +1,106 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import type { Expense } from '../types/Expense';
+import { apiGet } from '../services/api';
 
-const TEMP_EXPENSES: Expense[] = [
-  {
-    id: 1,
-    title: 'Lunch',
-    description: 'Lunch at campus',
-    amount: 5000,
-    category: 'food',
-    date: '2026-10-07',
-    paymentMethod: 'mobile-money',
-    notes: 'Regular lunch',
-  },
-  {
-    id: 2,
-    title: 'Bus Transport',
-    description: 'Transport to campus',
-    amount: 2500,
-    category: 'transport',
-    date: '2026-10-06',
-    paymentMethod: 'cash',
-  },
-  {
-    id: 3,
-    title: 'Internet',
-    description: 'Monthly internet payment',
-    amount: 15000,
-    category: 'other',
-    date: '2026-10-05',
-    paymentMethod: 'mobile-money',
-  },
-  {
-    id: 4,
-    title: 'Programming Course',
-    description: 'Online learning course',
-    amount: 20000,
-    category: 'education',
-    date: '2026-10-03',
-    paymentMethod: 'card',
-  },
-];
+interface DashboardSummary {
+  total_spending: number;
+  total_expenses: number;
+  average_expense: number;
+}
 
-const TEMP_BUDGET = 100000;
+interface BudgetInfo {
+  id: number;
+  month: string;
+  amount: number;
+}
+
+interface CategorySpending {
+  category_id: number;
+  category_name: string;
+  total_amount: number;
+  expense_count: number;
+}
+
+interface HighestExpense {
+  id: number;
+  title: string;
+  amount: number;
+  category_name: string;
+  expense_date: string;
+}
+
+interface RecentExpense {
+  id: number;
+  title: string;
+  amount: number;
+  category_name: string;
+  expense_date: string;
+  payment_method: string;
+}
+
+interface DashboardData {
+  summary: DashboardSummary;
+  budget: BudgetInfo | null;
+  budget_remaining: number | null;
+  spending_by_category: CategorySpending[];
+  highest_expense: HighestExpense | null;
+  recent_expenses: RecentExpense[];
+}
+
+function fmt(n: number) {
+  return `RWF ${Number(n).toLocaleString()}`;
+}
 
 function Dashboard() {
   const navigate = useNavigate();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const totalSpent = TEMP_EXPENSES.reduce((sum, e) => sum + e.amount, 0);
-  const remainingBudget = TEMP_BUDGET - totalSpent;
+  useEffect(() => {
+    apiGet<DashboardData>('/dashboard/insights')
+      .then(setData)
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard'),
+      )
+      .finally(() => setLoading(false));
+  }, []);
 
-  const highestExpense = TEMP_EXPENSES.reduce(
-    (max, e) => (e.amount > max.amount ? e : max),
-    TEMP_EXPENSES[0],
-  );
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="dashboard"><p>Loading...</p></main>
+      </>
+    );
+  }
 
-  const recentExpenses = [...TEMP_EXPENSES]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 5);
+  if (error) {
+    return (
+      <>
+        <Navbar />
+        <main className="dashboard"><p className="error-message">{error}</p></main>
+      </>
+    );
+  }
 
-  const spendingByCategory = TEMP_EXPENSES.reduce<Record<string, number>>(
-    (acc, e) => {
-      acc[e.category] = (acc[e.category] ?? 0) + e.amount;
-      return acc;
-    },
-    {},
-  );
+  const totalSpent = data?.summary.total_spending ?? 0;
+  const budgetAmount = data?.budget ? Number(data.budget.amount) : 0;
+  const budgetRemaining = data?.budget_remaining ?? null;
+  const highestExpense = data?.highest_expense ?? null;
+  const recentExpenses = data?.recent_expenses ?? [];
+  const spendingByCategory = data?.spending_by_category ?? [];
 
-  let budgetStatus = 'Within Budget';
-  if (totalSpent > TEMP_BUDGET) {
-    budgetStatus = 'Over Budget';
-  } else if (totalSpent >= TEMP_BUDGET * 0.8) {
-    budgetStatus = 'Approaching Budget';
+  let budgetStatus = 'No Budget Set';
+  if (budgetAmount > 0) {
+    if (totalSpent > budgetAmount) {
+      budgetStatus = 'Over Budget';
+    } else if (totalSpent >= budgetAmount * 0.8) {
+      budgetStatus = 'Approaching Budget';
+    } else {
+      budgetStatus = 'Within Budget';
+    }
   }
 
   return (
@@ -84,7 +113,6 @@ function Dashboard() {
             <h1>Dashboard</h1>
             <p>Welcome to your Retain expense manager.</p>
           </div>
-
           <button type="button" onClick={() => navigate('/expenses/add')}>
             + Add Expense
           </button>
@@ -93,17 +121,20 @@ function Dashboard() {
         <section className="overview">
           <div className="summary-card">
             <h2>Total Spent</h2>
-            <p>RWF {totalSpent.toLocaleString()}</p>
+            <p>{fmt(totalSpent)}</p>
           </div>
 
           <div className="summary-card">
             <h2>Remaining Budget</h2>
-            <p>RWF {Math.max(remainingBudget, 0).toLocaleString()}</p>
+            <p>{budgetRemaining !== null ? fmt(Math.max(budgetRemaining, 0)) : '—'}</p>
           </div>
 
           <div className="summary-card">
             <h2>Highest Expense</h2>
-            <p>RWF {highestExpense?.amount.toLocaleString() ?? 0}</p>
+            <p>{highestExpense ? fmt(highestExpense.amount) : '—'}</p>
+            {highestExpense && (
+              <small>{highestExpense.title}</small>
+            )}
           </div>
 
           <div className="summary-card">
@@ -127,20 +158,22 @@ function Dashboard() {
                 <th>Category</th>
                 <th>Amount</th>
                 <th>Date</th>
+                <th>Payment</th>
               </tr>
             </thead>
             <tbody>
               {recentExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={4}>No expenses yet.</td>
+                  <td colSpan={5}>No expenses yet.</td>
                 </tr>
               ) : (
                 recentExpenses.map((expense) => (
                   <tr key={expense.id}>
                     <td>{expense.title}</td>
-                    <td>{expense.category}</td>
-                    <td>RWF {expense.amount.toLocaleString()}</td>
-                    <td>{expense.date}</td>
+                    <td>{expense.category_name}</td>
+                    <td>{fmt(expense.amount)}</td>
+                    <td>{new Date(expense.expense_date).toLocaleDateString()}</td>
+                    <td>{expense.payment_method}</td>
                   </tr>
                 ))
               )}
@@ -150,14 +183,19 @@ function Dashboard() {
 
         <section className="dashboard-section">
           <h2>Spending by Category</h2>
-
           <div className="category-breakdown">
-            {Object.entries(spendingByCategory).map(([cat, amount]) => (
-              <div key={cat} className="category-row">
-                <span>{cat}</span>
-                <strong>RWF {amount.toLocaleString()}</strong>
-              </div>
-            ))}
+            {spendingByCategory.filter((c) => Number(c.total_amount) > 0).length === 0 ? (
+              <p style={{ color: '#6b7280' }}>No spending data yet.</p>
+            ) : (
+              spendingByCategory
+                .filter((c) => Number(c.total_amount) > 0)
+                .map((cat) => (
+                  <div key={cat.category_id} className="category-row">
+                    <span>{cat.category_name}</span>
+                    <strong>{fmt(cat.total_amount)}</strong>
+                  </div>
+                ))
+            )}
           </div>
         </section>
       </main>

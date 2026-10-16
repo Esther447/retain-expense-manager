@@ -1,33 +1,53 @@
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { apiGet, apiPost } from '../services/api';
+import type { Category } from '../types/Expense';
+
+interface CategoriesResponse {
+  categories: Category[];
+}
 
 function AddExpense() {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [date, setDate] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [notes, setNotes] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    apiGet<CategoriesResponse>('/categories').then((data) =>
+      setCategories(data.categories),
+    );
+  }, []);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError('');
+    setLoading(true);
 
-    console.log({
-      title,
-      description,
-      amount,
-      category,
-      date,
-      paymentMethod,
-      notes,
-    });
-
-    navigate('/expenses');
+    try {
+      await apiPost('/expenses', {
+        title,
+        amount: Number(amount),
+        category_id: Number(categoryId),
+        expense_date: date,
+        payment_method: paymentMethod,
+        notes: notes || undefined,
+      });
+      navigate('/expenses');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save expense');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -39,6 +59,8 @@ function AddExpense() {
           <h1>Add Expense</h1>
           <p>Record a new expense in your Retain account.</p>
 
+          {error && <p className="error-message">{error}</p>}
+
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label htmlFor="title">Title</label>
@@ -46,20 +68,8 @@ function AddExpense() {
                 id="title"
                 type="text"
                 value={title}
-                onChange={(event) => setTitle(event.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Lunch"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="description">Description</label>
-              <textarea
-                id="description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="Describe this expense"
-                rows={3}
                 required
               />
             </div>
@@ -69,10 +79,10 @@ function AddExpense() {
               <input
                 id="amount"
                 type="number"
-                min="0"
+                min="1"
                 step="1"
                 value={amount}
-                onChange={(event) => setAmount(event.target.value)}
+                onChange={(e) => setAmount(e.target.value)}
                 placeholder="Enter amount"
                 required
               />
@@ -82,17 +92,16 @@ function AddExpense() {
               <label htmlFor="category">Category</label>
               <select
                 id="category"
-                value={category}
-                onChange={(event) => setCategory(event.target.value)}
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
                 required
               >
                 <option value="">Select a category</option>
-                <option value="food">Food</option>
-                <option value="transport">Transport</option>
-                <option value="education">Education</option>
-                <option value="housing">Housing</option>
-                <option value="health">Health</option>
-                <option value="other">Other</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={String(cat.id)}>
+                    {cat.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -102,7 +111,7 @@ function AddExpense() {
                 id="date"
                 type="date"
                 value={date}
-                onChange={(event) => setDate(event.target.value)}
+                onChange={(e) => setDate(e.target.value)}
                 required
               />
             </div>
@@ -112,7 +121,7 @@ function AddExpense() {
               <select
                 id="paymentMethod"
                 value={paymentMethod}
-                onChange={(event) => setPaymentMethod(event.target.value)}
+                onChange={(e) => setPaymentMethod(e.target.value)}
                 required
               >
                 <option value="">Select a payment method</option>
@@ -128,7 +137,7 @@ function AddExpense() {
               <textarea
                 id="notes"
                 value={notes}
-                onChange={(event) => setNotes(event.target.value)}
+                onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add any additional notes"
                 rows={3}
               />
@@ -142,9 +151,8 @@ function AddExpense() {
               >
                 Cancel
               </button>
-
-              <button type="submit" className="save-button">
-                Save Expense
+              <button type="submit" className="save-button" disabled={loading}>
+                {loading ? 'Saving...' : 'Save Expense'}
               </button>
             </div>
           </form>
