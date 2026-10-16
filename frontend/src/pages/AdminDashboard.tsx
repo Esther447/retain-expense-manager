@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { apiGet, apiPost, apiPut, apiDelete } from '../services/api';
+import Navbar from '../components/Navbar';
 import './AdminDashboard.css';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -369,8 +370,10 @@ function AdminDashboard() {
   }, []);
 
   return (
-    <main className="admin-page">
-      <h1>Admin Dashboard</h1>
+    <>
+      <Navbar />
+      <main className="admin-page">
+        <h1>Admin Dashboard</h1>
 
       <div className="admin-tabs">
         <button
@@ -398,7 +401,8 @@ function AdminDashboard() {
       )}
 
       {tab === 'categories' && <CategoriesTab />}
-    </main>
+      </main>
+    </>
   );
 }
 

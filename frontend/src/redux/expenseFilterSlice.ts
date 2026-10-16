@@ -46,6 +46,8 @@ const expenseFilterSlice = createSlice({
     setEndDate: (state, action: PayloadAction<string>) => {
       state.endDate = action.payload;
     },
+
+    resetFilters: () => initialState,
   },
 });
 
@@ -56,6 +58,7 @@ export const {
   setSortBy,
   setStartDate,
   setEndDate,
+  resetFilters,
 } = expenseFilterSlice.actions;
 
 export default expenseFilterSlice.reducer;

@@ -115,6 +115,8 @@ const deleteCategory = async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
+    await client.query('BEGIN');
+
     // Ensure the fallback "Uncategorized" category exists
     const fallback = await client.query(
       `INSERT INTO categories (name)
@@ -125,12 +127,11 @@ const deleteCategory = async (req, res) => {
     const fallbackId = fallback.rows[0].id;
 
     if (String(fallbackId) === String(id)) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         message: 'Cannot delete the Uncategorized fallback category',
       });
     }
-
-    await client.query('BEGIN');
 
     // Reassign any expenses using this category to Uncategorized
     await client.query(

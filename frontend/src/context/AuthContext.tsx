@@ -23,14 +23,26 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+function getUserFromStorage(): User | null {
+  try {
+    const stored = localStorage.getItem('user');
+    return stored ? (JSON.parse(stored) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(getUserFromStorage);
 
   const login = (loggedInUser: User) => {
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
     setUser(loggedInUser);
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
   };
 

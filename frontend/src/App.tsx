@@ -17,70 +17,15 @@ function App() {
     <BrowserRouter>
       <div className="app">
         <Routes>
-          <Route
-  path="/"
-  element={
-    <ProtectedRoute>
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>
-
-          <Route
-  path="/expenses"
-  element={
-    <ProtectedRoute>
-      <Expenses />
-    </ProtectedRoute>
-  }
-/>
-
-          <Route
-  path="/expenses/add"
-  element={
-    <ProtectedRoute>
-      <AddExpense />
-    </ProtectedRoute>
-  }
-/>
-
-          <Route
-  path="/expenses/edit"
-  element={
-    <ProtectedRoute>
-      <EditExpense />
-    </ProtectedRoute>
-  }
-/>
-
-          <Route
-  path="/profile"
-  element={
-    <ProtectedRoute>
-      <Profile />
-    </ProtectedRoute>
-  }
-/>
-
-          <Route
-  path="/budget"
-  element={
-    <ProtectedRoute>
-      <Budget />
-    </ProtectedRoute>
-  }
-/>
-
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+          <Route path="/expenses/add" element={<ProtectedRoute><AddExpense /></ProtectedRoute>} />
+          <Route path="/expenses/edit" element={<ProtectedRoute><EditExpense /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/budget" element={<ProtectedRoute><Budget /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute adminOnly>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
         </Routes>
       </div>
     </BrowserRouter>

@@ -10,6 +10,10 @@ const createBudget = async (req, res) => {
       });
     }
 
+    if (isNaN(Number(amount)) || Number(amount) <= 0) {
+      return res.status(400).json({ message: 'Amount must be a positive number' });
+    }
+
     const result = await pool.query(
       `INSERT INTO budgets (user_id, month, amount)
        VALUES ($1, $2, $3)
@@ -72,6 +76,10 @@ const updateBudget = async (req, res) => {
       return res.status(400).json({
         message: 'Month and amount are required',
       });
+    }
+
+    if (isNaN(Number(amount)) || Number(amount) <= 0) {
+      return res.status(400).json({ message: 'Amount must be a positive number' });
     }
 
     const result = await pool.query(

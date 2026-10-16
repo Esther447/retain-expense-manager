@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import { apiGet, apiPost, apiPut } from '../services/api';
 
@@ -23,7 +23,7 @@ function Budget() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  function loadData() {
+  const loadData = useCallback(() => {
     setLoading(true);
     apiGet<DashboardData>('/dashboard/insights')
       .then((d) => {
@@ -36,11 +36,11 @@ function Budget() {
         setError(err instanceof Error ? err.message : 'Failed to load budget'),
       )
       .finally(() => setLoading(false));
-  }
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

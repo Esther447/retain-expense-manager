@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { apiGet } from '../services/api';
@@ -92,16 +92,12 @@ function Dashboard() {
   const recentExpenses = data?.recent_expenses ?? [];
   const spendingByCategory = data?.spending_by_category ?? [];
 
-  let budgetStatus = 'No Budget Set';
-  if (budgetAmount > 0) {
-    if (totalSpent > budgetAmount) {
-      budgetStatus = 'Over Budget';
-    } else if (totalSpent >= budgetAmount * 0.8) {
-      budgetStatus = 'Approaching Budget';
-    } else {
-      budgetStatus = 'Within Budget';
-    }
-  }
+  const budgetStatus = useMemo(() => {
+    if (budgetAmount <= 0) return 'No Budget Set';
+    if (totalSpent > budgetAmount) return 'Over Budget';
+    if (totalSpent >= budgetAmount * 0.8) return 'Approaching Budget';
+    return 'Within Budget';
+  }, [totalSpent, budgetAmount]);
 
   return (
     <>

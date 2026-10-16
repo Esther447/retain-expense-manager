@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
 import Navbar from '../components/Navbar';
@@ -33,21 +33,21 @@ function Expenses() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  function loadExpenses() {
+  const loadExpenses = useCallback(() => {
     apiGet<ExpensesResponse>('/expenses?limit=100')
       .then((data) => setExpenses(data.expenses))
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : 'Failed to load expenses'),
       )
       .finally(() => setLoading(false));
-  }
+  }, []);
 
   useEffect(() => {
     loadExpenses();
     apiGet<CategoriesResponse>('/categories').then((data) =>
       setCategories(data.categories),
     );
-  }, []);
+  }, [loadExpenses]);
 
   async function handleDelete(id: number) {
     if (!window.confirm('Are you sure you want to delete this expense?')) return;

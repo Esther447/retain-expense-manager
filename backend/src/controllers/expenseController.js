@@ -24,6 +24,15 @@ const createExpense = async (req, res) => {
       });
     }
 
+    if (isNaN(Number(amount)) || Number(amount) <= 0) {
+      return res.status(400).json({ message: 'Amount must be a positive number' });
+    }
+
+    const validPaymentMethods = ['cash', 'mobile-money', 'card', 'bank'];
+    if (!validPaymentMethods.includes(payment_method)) {
+      return res.status(400).json({ message: 'Invalid payment method' });
+    }
+
     const category = await pool.query(
       'SELECT id FROM categories WHERE id = $1',
       [category_id]
@@ -249,6 +258,15 @@ const updateExpense = async (req, res) => {
         message:
           'Title, amount, category, expense date, and payment method are required',
       });
+    }
+
+    if (isNaN(Number(amount)) || Number(amount) <= 0) {
+      return res.status(400).json({ message: 'Amount must be a positive number' });
+    }
+
+    const validPaymentMethods = ['cash', 'mobile-money', 'card', 'bank'];
+    if (!validPaymentMethods.includes(payment_method)) {
+      return res.status(400).json({ message: 'Invalid payment method' });
     }
 
     const category = await pool.query(
