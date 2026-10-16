@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
 import Navbar from '../components/Navbar';
 import type { Expense } from '../types/Expense';
@@ -7,17 +8,19 @@ import {
   setCategory,
   setPaymentMethod,
   setSortBy,
+  setStartDate,
+  setEndDate,
 } from '../redux/expenseFilterSlice';
 
 function Expenses() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const { search, category, paymentMethod, sortBy } = useAppSelector(
+  const { search, category, paymentMethod, sortBy, startDate, endDate } = useAppSelector(
     (state) => state.expenseFilter,
   );
 
-  const expenses: Expense[] = [
+  const [expenses, setExpenses] = useState<Expense[]>([
     {
       id: 1,
       title: 'Lunch',
@@ -55,7 +58,13 @@ function Expenses() {
       date: '2026-10-03',
       paymentMethod: 'card',
     },
-  ];
+  ]);
+
+  const handleDelete = (id: number) => {
+    if (window.confirm('Are you sure you want to delete this expense?')) {
+      setExpenses((prev) => prev.filter((e) => e.id !== id));
+    }
+  };
 
   const filteredExpenses = expenses
     .filter((expense) => {
@@ -70,7 +79,13 @@ function Expenses() {
         paymentMethod === '' ||
         expense.paymentMethod === paymentMethod;
 
-      return searchMatches && categoryMatches && paymentMethodMatches;
+      const startDateMatches =
+        startDate === '' || expense.date >= startDate;
+
+      const endDateMatches =
+        endDate === '' || expense.date <= endDate;
+
+      return searchMatches && categoryMatches && paymentMethodMatches && startDateMatches && endDateMatches;
     })
     .sort((a, b) => {
       if (sortBy === 'date-asc') {
@@ -143,6 +158,20 @@ function Expenses() {
               <option value="bank">Bank Transfer</option>
             </select>
 
+            <input
+              type="date"
+              value={startDate}
+              onChange={(event) => dispatch(setStartDate(event.target.value))}
+              aria-label="Start date"
+            />
+
+            <input
+              type="date"
+              value={endDate}
+              onChange={(event) => dispatch(setEndDate(event.target.value))}
+              aria-label="End date"
+            />
+
             <select
               value={sortBy}
               onChange={(event) => dispatch(setSortBy(event.target.value))}
@@ -181,7 +210,22 @@ function Expenses() {
                       <td>{expense.date}</td>
                       <td>{expense.paymentMethod}</td>
                       <td>
-                        <button type="button">View</button>
+                        <button
+                          type="button"
+                          className="action-button edit-button"
+                          onClick={() =>
+                            navigate('/expenses/edit', { state: expense })
+                          }
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="action-button delete-button"
+                          onClick={() => handleDelete(expense.id)}
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   ))

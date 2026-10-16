@@ -6,6 +6,8 @@ interface ExpenseFilterState {
   category: string;
   paymentMethod: string;
   sortBy: string;
+  startDate: string;
+  endDate: string;
 }
 
 const initialState: ExpenseFilterState = {
@@ -13,6 +15,8 @@ const initialState: ExpenseFilterState = {
   category: '',
   paymentMethod: '',
   sortBy: 'date-desc',
+  startDate: '',
+  endDate: '',
 };
 
 const expenseFilterSlice = createSlice({
@@ -34,6 +38,14 @@ const expenseFilterSlice = createSlice({
     setSortBy: (state, action: PayloadAction<string>) => {
       state.sortBy = action.payload;
     },
+
+    setStartDate: (state, action: PayloadAction<string>) => {
+      state.startDate = action.payload;
+    },
+
+    setEndDate: (state, action: PayloadAction<string>) => {
+      state.endDate = action.payload;
+    },
   },
 });
 
@@ -42,6 +54,8 @@ export const {
   setCategory,
   setPaymentMethod,
   setSortBy,
+  setStartDate,
+  setEndDate,
 } = expenseFilterSlice.actions;
 
 export default expenseFilterSlice.reducer;

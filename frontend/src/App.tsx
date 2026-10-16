@@ -4,6 +4,9 @@ import './App.css';
 import Expenses from './pages/Expenses';
 import AddExpense from './pages/AddExpense';
 import Profile from './pages/Profile';
+import Dashboard from './pages/Dashboard';
+import EditExpense from './pages/EditExpense';
+import Budget from './pages/Budget';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -13,6 +16,15 @@ function App() {
     <BrowserRouter>
       <div className="app">
         <Routes>
+          <Route
+  path="/"
+  element={
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  }
+/>
+
           <Route
   path="/expenses"
   element={
@@ -32,10 +44,28 @@ function App() {
 />
 
           <Route
+  path="/expenses/edit"
+  element={
+    <ProtectedRoute>
+      <EditExpense />
+    </ProtectedRoute>
+  }
+/>
+
+          <Route
   path="/profile"
   element={
     <ProtectedRoute>
       <Profile />
+    </ProtectedRoute>
+  }
+/>
+
+          <Route
+  path="/budget"
+  element={
+    <ProtectedRoute>
+      <Budget />
     </ProtectedRoute>
   }
 />

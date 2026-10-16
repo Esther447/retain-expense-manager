@@ -255,7 +255,7 @@
 
 .expenses-toolbar {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -303,7 +303,7 @@
 
 @media (max-width: 900px) {
   .expenses-toolbar {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
   }
 }
 
@@ -511,4 +511,46 @@
     flex-direction: column;
     gap: 6px;
   }
+}
+
+.category-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.category-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.category-row:last-child {
+  border-bottom: none;
+}
+
+.category-row span {
+  color: #6b7280;
+  text-transform: capitalize;
+}
+
+.action-button {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-right: 6px;
+}
+
+.edit-button {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.delete-button {
+  background: #fee2e2;
+  color: #dc2626;
 }

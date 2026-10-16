@@ -1,7 +1,19 @@
-import type { FormEvent } from 'react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import type { FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiPost } from '../services/api';
+
+interface LoginResponse {
+  message: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    role: 'user' | 'admin';
+  };
+  token: string;
+}
 
 function Login() {
   const navigate = useNavigate();
@@ -9,18 +21,35 @@ function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    login({
-      id: 1,
-      name: 'Retain User',
-      email,
-      role: 'user',
-    });
+    setError('');
+    setLoading(true);
 
-    navigate('/');
+    try {
+      const response = await apiPost<LoginResponse>('/auth/signin', {
+        email,
+        password,
+      });
+
+      localStorage.setItem('token', response.token);
+
+      login(response.user);
+
+      navigate('/');
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to sign in',
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -28,6 +57,8 @@ function Login() {
       <div className="auth-card">
         <h1>Welcome Back</h1>
         <p>Sign in to your Retain account.</p>
+
+        {error && <p className="error-message">{error}</p>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -54,8 +85,14 @@ function Login() {
             />
           </div>
 
-          <button type="submit">Sign In</button>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Signing In...' : 'Sign In'}
+          </button>
         </form>
+
+        <p>
+          Don't have an account? <Link to="/signup">Create one</Link>
+        </p>
       </div>
     </main>
   );
