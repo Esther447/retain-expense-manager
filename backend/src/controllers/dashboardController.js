@@ -4,73 +4,74 @@ const getDashboardInsights = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const totalResult = await pool.query(
-      `SELECT
-         COALESCE(SUM(amount), 0) AS total_spending,
-         COUNT(*) AS total_expenses,
-         COALESCE(AVG(amount), 0) AS average_expense
-       FROM expenses
-       WHERE user_id = $1`,
-      [userId]
-    );
-
-    const categoryResult = await pool.query(
-      `SELECT
-         c.id AS category_id,
-         c.name AS category_name,
-         COALESCE(SUM(e.amount), 0) AS total_amount,
-         COUNT(e.id) AS expense_count
-       FROM categories c
-       LEFT JOIN expenses e
-         ON e.category_id = c.id
-         AND e.user_id = $1
-       GROUP BY c.id, c.name
-       ORDER BY total_amount DESC`,
-      [userId]
-    );
-
-    const highestResult = await pool.query(
-      `SELECT
-         e.id,
-         e.title,
-         e.amount,
-         c.name AS category_name,
-         e.expense_date
-       FROM expenses e
-       JOIN categories c ON c.id = e.category_id
-       WHERE e.user_id = $1
-       ORDER BY e.amount DESC
-       LIMIT 1`,
-      [userId]
-    );
-
-    const recentResult = await pool.query(
-      `SELECT
-         e.id,
-         e.title,
-         e.amount,
-         c.name AS category_name,
-         e.expense_date,
-         e.payment_method
-       FROM expenses e
-       JOIN categories c ON c.id = e.category_id
-       WHERE e.user_id = $1
-       ORDER BY e.expense_date DESC, e.created_at DESC
-       LIMIT 5`,
-      [userId]
-    );
-
-    const budgetResult = await pool.query(
-      `SELECT
-         id,
-         month,
-         amount
-       FROM budgets
-       WHERE user_id = $1
-       ORDER BY month DESC
-       LIMIT 1`,
-      [userId]
-    );
+    const [
+      totalResult,
+      categoryResult,
+      highestResult,
+      recentResult,
+      budgetResult,
+    ] = await Promise.all([
+      pool.query(
+        `SELECT
+           COALESCE(SUM(amount), 0) AS total_spending,
+           COUNT(*) AS total_expenses,
+           COALESCE(AVG(amount), 0) AS average_expense
+         FROM expenses
+         WHERE user_id = $1`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+           c.id AS category_id,
+           c.name AS category_name,
+           COALESCE(SUM(e.amount), 0) AS total_amount,
+           COUNT(e.id) AS expense_count
+         FROM categories c
+         LEFT JOIN expenses e
+           ON e.category_id = c.id
+           AND e.user_id = $1
+         GROUP BY c.id, c.name
+         ORDER BY total_amount DESC`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+           e.id,
+           e.title,
+           e.amount,
+           c.name AS category_name,
+           e.expense_date
+         FROM expenses e
+         JOIN categories c ON c.id = e.category_id
+         WHERE e.user_id = $1
+         ORDER BY e.amount DESC
+         LIMIT 1`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+           e.id,
+           e.title,
+           e.amount,
+           c.name AS category_name,
+           e.expense_date,
+           e.payment_method
+         FROM expenses e
+         JOIN categories c ON c.id = e.category_id
+         WHERE e.user_id = $1
+         ORDER BY e.expense_date DESC, e.created_at DESC
+         LIMIT 5`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT id, month, amount
+         FROM budgets
+         WHERE user_id = $1
+         ORDER BY month DESC
+         LIMIT 1`,
+        [userId]
+      ),
+    ]);
 
     const totalSpending = Number(totalResult.rows[0].total_spending);
     const currentBudget = budgetResult.rows[0]
@@ -103,75 +104,79 @@ const getDashboardInsights = async (req, res) => {
 
 const getAdminInsights = async (req, res) => {
   try {
-    const totalsResult = await pool.query(
-      `SELECT
-         (SELECT COUNT(*) FROM users) AS total_users,
-         COUNT(e.id) AS total_expenses,
-         COALESCE(SUM(e.amount), 0) AS total_spending
-       FROM expenses e`
-    );
-
-    const currentMonthResult = await pool.query(
-      `SELECT COUNT(*) AS current_month_expenses
-       FROM expenses
-       WHERE DATE_TRUNC('month', expense_date) = DATE_TRUNC('month', CURRENT_DATE)`
-    );
-
-    const spendingByCategoryResult = await pool.query(
-      `SELECT
-         c.id,
-         c.name AS category_name,
-         COALESCE(SUM(e.amount), 0) AS total_amount,
-         COUNT(e.id) AS expense_count
-       FROM categories c
-       LEFT JOIN expenses e ON e.category_id = c.id
-       GROUP BY c.id, c.name
-       ORDER BY total_amount DESC`
-    );
-
-    const topCategoriesResult = await pool.query(
-      `SELECT
-         c.name AS category_name,
-         COUNT(e.id) AS expense_count
-       FROM categories c
-       LEFT JOIN expenses e ON e.category_id = c.id
-       GROUP BY c.id, c.name
-       ORDER BY expense_count DESC
-       LIMIT 5`
-    );
-
-    const bottomCategoriesResult = await pool.query(
-      `SELECT
-         c.name AS category_name,
-         COUNT(e.id) AS expense_count
-       FROM categories c
-       LEFT JOIN expenses e ON e.category_id = c.id
-       GROUP BY c.id, c.name
-       ORDER BY expense_count ASC
-       LIMIT 5`
-    );
-
-    const recentExpensesResult = await pool.query(
-      `SELECT
-         e.id,
-         e.title,
-         e.amount,
-         u.name AS user_name,
-         c.name AS category_name,
-         e.expense_date
-       FROM expenses e
-       JOIN users u ON u.id = e.user_id
-       JOIN categories c ON c.id = e.category_id
-       ORDER BY e.created_at DESC
-       LIMIT 10`
-    );
-
-    const recentUsersResult = await pool.query(
-      `SELECT id, name, email, role, created_at
-       FROM users
-       ORDER BY created_at DESC
-       LIMIT 10`
-    );
+    const [
+      totalsResult,
+      currentMonthResult,
+      spendingByCategoryResult,
+      topCategoriesResult,
+      bottomCategoriesResult,
+      recentExpensesResult,
+      recentUsersResult,
+    ] = await Promise.all([
+      pool.query(
+        `SELECT
+           (SELECT COUNT(*) FROM users) AS total_users,
+           COUNT(e.id) AS total_expenses,
+           COALESCE(SUM(e.amount), 0) AS total_spending
+         FROM expenses e`
+      ),
+      pool.query(
+        `SELECT COUNT(*) AS current_month_expenses
+         FROM expenses
+         WHERE DATE_TRUNC('month', expense_date) = DATE_TRUNC('month', CURRENT_DATE)`
+      ),
+      pool.query(
+        `SELECT
+           c.id,
+           c.name AS category_name,
+           COALESCE(SUM(e.amount), 0) AS total_amount,
+           COUNT(e.id) AS expense_count
+         FROM categories c
+         LEFT JOIN expenses e ON e.category_id = c.id
+         GROUP BY c.id, c.name
+         ORDER BY total_amount DESC`
+      ),
+      pool.query(
+        `SELECT
+           c.name AS category_name,
+           COUNT(e.id) AS expense_count
+         FROM categories c
+         LEFT JOIN expenses e ON e.category_id = c.id
+         GROUP BY c.id, c.name
+         ORDER BY expense_count DESC
+         LIMIT 5`
+      ),
+      pool.query(
+        `SELECT
+           c.name AS category_name,
+           COUNT(e.id) AS expense_count
+         FROM categories c
+         LEFT JOIN expenses e ON e.category_id = c.id
+         GROUP BY c.id, c.name
+         ORDER BY expense_count ASC
+         LIMIT 5`
+      ),
+      pool.query(
+        `SELECT
+           e.id,
+           e.title,
+           e.amount,
+           u.name AS user_name,
+           c.name AS category_name,
+           e.expense_date
+         FROM expenses e
+         JOIN users u ON u.id = e.user_id
+         JOIN categories c ON c.id = e.category_id
+         ORDER BY e.created_at DESC
+         LIMIT 10`
+      ),
+      pool.query(
+        `SELECT id, name, email, role, created_at
+         FROM users
+         ORDER BY created_at DESC
+         LIMIT 10`
+      ),
+    ]);
 
     return res.json({
       summary: {

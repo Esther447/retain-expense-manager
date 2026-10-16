@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
-import { apiGet, apiPost, apiPut } from '../services/api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../services/api';
 
 interface BudgetInfo {
   id: number;
@@ -10,14 +10,19 @@ interface BudgetInfo {
 }
 
 interface DashboardData {
-  summary: { total_spending: number };
+  summary: { total_spending: number; total_expenses: number; average_expense: number };
   budget: BudgetInfo | null;
   budget_remaining: number | null;
+}
+
+interface BudgetsResponse {
+  budgets: BudgetInfo[];
 }
 
 function Budget() {
   const [budgetInput, setBudgetInput] = useState('');
   const [data, setData] = useState<DashboardData | null>(null);
+  const [allBudgets, setAllBudgets] = useState<BudgetInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -25,12 +30,14 @@ function Budget() {
 
   const loadData = useCallback(() => {
     setLoading(true);
-    apiGet<DashboardData>('/dashboard/insights')
-      .then((d) => {
-        setData(d);
-        if (d.budget) {
-          setBudgetInput(String(d.budget.amount));
-        }
+    Promise.all([
+      apiGet<DashboardData>('/dashboard/insights'),
+      apiGet<BudgetsResponse>('/budgets'),
+    ])
+      .then(([insights, budgetsRes]) => {
+        setData(insights);
+        setAllBudgets(budgetsRes.budgets);
+        if (insights.budget) setBudgetInput(String(insights.budget.amount));
       })
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : 'Failed to load budget'),
@@ -48,13 +55,11 @@ function Budget() {
     setSuccessMsg('');
     setSaving(true);
 
-    // Budget month is always the current month (YYYY-MM-01)
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 
     try {
       if (data?.budget) {
-        // Budget already exists for this month — update it
         await apiPut(`/budgets/${data.budget.id}`, { month, amount: Number(budgetInput) });
       } else {
         await apiPost('/budgets', { month, amount: Number(budgetInput) });
@@ -68,7 +73,19 @@ function Budget() {
     }
   };
 
+  async function handleDeleteBudget(id: number) {
+    if (!window.confirm('Delete this budget?')) return;
+    try {
+      await apiDelete(`/budgets/${id}`);
+      loadData();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete budget');
+    }
+  }
+
   const totalSpent = data?.summary.total_spending ?? 0;
+  const totalExpenses = data?.summary.total_expenses ?? 0;
+  const averageExpense = data?.summary.average_expense ?? 0;
   const budgetAmount = data?.budget ? Number(data.budget.amount) : 0;
   const budgetRemaining = data?.budget_remaining ?? null;
 
@@ -139,6 +156,16 @@ function Budget() {
               </div>
 
               <div className="budget-stat">
+                <span>Total Expenses</span>
+                <strong>{totalExpenses}</strong>
+              </div>
+
+              <div className="budget-stat">
+                <span>Average Expense</span>
+                <strong>{averageExpense > 0 ? `RWF ${Number(averageExpense).toLocaleString()}` : '—'}</strong>
+              </div>
+
+              <div className="budget-stat">
                 <span>Remaining Budget</span>
                 <strong>
                   {budgetRemaining !== null
@@ -153,6 +180,40 @@ function Budget() {
               </div>
             </div>
           </section>
+
+          {allBudgets.length > 0 && (
+            <section className="budget-card" style={{ marginTop: '24px' }}>
+              <h2>Budget History</h2>
+              <div className="expenses-table-wrapper">
+                <table className="expenses-table">
+                  <thead>
+                    <tr>
+                      <th>Month</th>
+                      <th>Amount</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allBudgets.map((b) => (
+                      <tr key={b.id}>
+                        <td>{new Date(b.month).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}</td>
+                        <td>RWF {Number(b.amount).toLocaleString()}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="action-button delete-button"
+                            onClick={() => handleDeleteBudget(b.id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
         )}
       </main>
     </>

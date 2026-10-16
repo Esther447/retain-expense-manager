@@ -137,6 +137,16 @@ function Dashboard() {
             <h2>Budget Status</h2>
             <p>{budgetStatus}</p>
           </div>
+
+          <div className="summary-card">
+            <h2>Total Expenses</h2>
+            <p>{data?.summary.total_expenses ?? 0}</p>
+          </div>
+
+          <div className="summary-card">
+            <h2>Average Expense</h2>
+            <p>{data?.summary.average_expense ? fmt(data.summary.average_expense) : '—'}</p>
+          </div>
         </section>
 
         <section className="dashboard-section">
@@ -147,34 +157,36 @@ function Dashboard() {
             </button>
           </div>
 
-          <table className="expenses-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Payment</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentExpenses.length === 0 ? (
+          <div className="expenses-table-wrapper">
+            <table className="expenses-table">
+              <thead>
                 <tr>
-                  <td colSpan={5}>No expenses yet.</td>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Payment</th>
                 </tr>
-              ) : (
-                recentExpenses.map((expense) => (
-                  <tr key={expense.id}>
-                    <td>{expense.title}</td>
-                    <td>{expense.category_name}</td>
-                    <td>{fmt(expense.amount)}</td>
-                    <td>{new Date(expense.expense_date).toLocaleDateString()}</td>
-                    <td>{expense.payment_method}</td>
+              </thead>
+              <tbody>
+                {recentExpenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>No expenses yet.</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  recentExpenses.map((expense) => (
+                    <tr key={expense.id}>
+                      <td>{expense.title}</td>
+                      <td>{expense.category_name}</td>
+                      <td>{fmt(expense.amount)}</td>
+                      <td>{new Date(expense.expense_date).toLocaleDateString()}</td>
+                      <td>{expense.payment_method}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="dashboard-section">

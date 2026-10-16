@@ -87,69 +87,65 @@ const getExpenses = async (req, res) => {
       limit = 10,
     } = req.query;
 
-    const allowedSortFields = {
-      expense_date: 'e.expense_date',
-      amount: 'e.amount',
-      title: 'e.title',
-      created_at: 'e.created_at',
+    const ORDER_BY_MAP = {
+      'expense_date-DESC': 'ORDER BY e.expense_date DESC',
+      'expense_date-ASC':  'ORDER BY e.expense_date ASC',
+      'amount-DESC':       'ORDER BY e.amount DESC',
+      'amount-ASC':        'ORDER BY e.amount ASC',
+      'title-DESC':        'ORDER BY e.title DESC',
+      'title-ASC':         'ORDER BY e.title ASC',
+      'created_at-DESC':   'ORDER BY e.created_at DESC',
+      'created_at-ASC':    'ORDER BY e.created_at ASC',
     };
 
-    const sortField =
-      allowedSortFields[sort_by] || allowedSortFields.expense_date;
-
-    const sortDirection =
-      String(sort_order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const validSortFields = ['expense_date', 'amount', 'title', 'created_at'];
+    const safeField = validSortFields.includes(sort_by) ? sort_by : 'expense_date';
+    const safeDir = String(sort_order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const orderBy = ORDER_BY_MAP[`${safeField}-${safeDir}`];
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
-    const limitNumber = Math.min(
-      Math.max(parseInt(limit, 10) || 10, 1),
-      100
-    );
+    const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
     const offset = (pageNumber - 1) * limitNumber;
 
-    const conditions = ['e.user_id = $1'];
     const values = [req.user.id];
-    let parameterNumber = 2;
+    let p = 2;
+    let searchClause = '';
+    let categoryClause = '';
+    let paymentClause = '';
+    let startClause = '';
+    let endClause = '';
 
     if (search) {
-      conditions.push(
-        `(e.title ILIKE $${parameterNumber}
-          OR e.notes ILIKE $${parameterNumber})`
-      );
+      searchClause = `AND (e.title ILIKE $${p} OR e.notes ILIKE $${p})`;
       values.push(`%${search}%`);
-      parameterNumber += 1;
+      p += 1;
     }
-
     if (category_id) {
-      conditions.push(`e.category_id = $${parameterNumber}`);
+      categoryClause = `AND e.category_id = $${p}`;
       values.push(category_id);
-      parameterNumber += 1;
+      p += 1;
     }
-
     if (payment_method) {
-      conditions.push(`e.payment_method = $${parameterNumber}`);
+      paymentClause = `AND e.payment_method = $${p}`;
       values.push(payment_method);
-      parameterNumber += 1;
+      p += 1;
     }
-
     if (start_date) {
-      conditions.push(`e.expense_date >= $${parameterNumber}`);
+      startClause = `AND e.expense_date >= $${p}`;
       values.push(start_date);
-      parameterNumber += 1;
+      p += 1;
     }
-
     if (end_date) {
-      conditions.push(`e.expense_date <= $${parameterNumber}`);
+      endClause = `AND e.expense_date <= $${p}`;
       values.push(end_date);
-      parameterNumber += 1;
+      p += 1;
     }
-
-    const whereClause = conditions.join(' AND ');
 
     const countResult = await pool.query(
       `SELECT COUNT(*) AS total
        FROM expenses e
-       WHERE ${whereClause}`,
+       WHERE e.user_id = $1
+       ${searchClause} ${categoryClause} ${paymentClause} ${startClause} ${endClause}`,
       values
     );
 
@@ -169,10 +165,10 @@ const getExpenses = async (req, res) => {
          e.updated_at
        FROM expenses e
        JOIN categories c ON c.id = e.category_id
-       WHERE ${whereClause}
-       ORDER BY ${sortField} ${sortDirection}
-       LIMIT $${parameterNumber}
-       OFFSET $${parameterNumber + 1}`,
+       WHERE e.user_id = $1
+       ${searchClause} ${categoryClause} ${paymentClause} ${startClause} ${endClause}
+       ${orderBy}
+       LIMIT $${p} OFFSET $${p + 1}`,
       [...values, limitNumber, offset]
     );
 

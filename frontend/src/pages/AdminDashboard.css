@@ -4,6 +4,16 @@
   margin: 0 auto;
 }
 
+@media (max-width: 600px) {
+  .admin-page {
+    padding: 1rem;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-page h1 {
   margin-bottom: 1.25rem;
   font-size: 1.75rem;
@@ -108,6 +118,11 @@
 }
 
 /* ── Tables ───────────────────────────────────────────────────────────────── */
+
+.admin-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
 
 .admin-table {
   width: 100%;
@@ -293,6 +308,11 @@
   border-radius: 4px;
   font-size: 0.8rem;
   cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-cancel:hover {
+  background: #e2e8f0;
 }
 
 .btn-delete {

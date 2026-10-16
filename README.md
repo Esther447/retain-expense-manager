@@ -2,6 +2,23 @@
 
 A full-stack personal expense management web application built with React + TypeScript (frontend) and Node.js + Express + PostgreSQL (backend).
 
+**Live Demo:** [https://retain-expense-manager.vercel.app](https://retain-expense-manager.vercel.app)
+
+**API Base URL:** [https://retain-expense-manager-api.onrender.com/api](https://retain-expense-manager-api.onrender.com/api)
+
+---
+
+## Features
+
+- **User Authentication** — Sign up, sign in, and JWT-protected sessions
+- **Expense Management** — Create, view, edit, and delete personal expenses with full filtering (search, category, payment method, date range), sorting, and pagination
+- **Budget Tracking** — Set monthly budgets, track remaining balance, and view budget history
+- **Dashboard** — Summary cards (total spending, expense count, average), spending by category, highest expense, and recent expenses
+- **Admin Dashboard** — Platform-wide insights: total users, total spending, top/bottom categories, recent expenses and users across all accounts
+- **Category Management** — Admin-only create, edit, and delete categories; deleted categories safely reassign expenses to "Uncategorized"
+- **Role-Based Access Control** — `user` and `admin` roles enforced on both frontend (protected routes) and backend (middleware)
+- **Responsive UI** — Mobile-friendly layout with accessible focus styles and smooth transitions
+
 ---
 
 ## Project Structure

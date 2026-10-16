@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
 import Navbar from '../components/Navbar';
@@ -59,22 +59,18 @@ function Expenses() {
     }
   }
 
-  const filteredExpenses = expenses
+  const filteredExpenses = useMemo(() => expenses
     .filter((expense) => {
       const searchLower = search.toLowerCase();
       const matchesSearch =
         expense.title.toLowerCase().includes(searchLower) ||
         (expense.notes ?? '').toLowerCase().includes(searchLower);
-
       const matchesCategory =
         category === '' || String(expense.category_id) === category;
-
       const matchesPayment =
         paymentMethod === '' || expense.payment_method === paymentMethod;
-
       const matchesStart = startDate === '' || expense.expense_date >= startDate;
       const matchesEnd = endDate === '' || expense.expense_date <= endDate;
-
       return matchesSearch && matchesCategory && matchesPayment && matchesStart && matchesEnd;
     })
     .sort((a, b) => {
@@ -82,7 +78,7 @@ function Expenses() {
       if (sortBy === 'amount-desc') return b.amount - a.amount;
       if (sortBy === 'amount-asc') return a.amount - b.amount;
       return b.expense_date.localeCompare(a.expense_date);
-    });
+    }), [expenses, search, category, paymentMethod, sortBy, startDate, endDate]);
 
   return (
     <>

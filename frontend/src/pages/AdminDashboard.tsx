@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { apiGet, apiPost, apiPut, apiDelete } from '../services/api';
 import Navbar from '../components/Navbar';
@@ -38,7 +38,7 @@ interface RecentUser {
   id: number;
   name: string;
   email: string;
-  role: string;
+  role: 'user' | 'admin';
   created_at: string;
 }
 
@@ -97,24 +97,26 @@ function InsightsTab({ insights }: { insights: AdminInsights }) {
         {spending_by_category.length === 0 ? (
           <p className="empty-msg">No expenses recorded yet.</p>
         ) : (
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Expenses</th>
-                <th>Total Spent</th>
-              </tr>
-            </thead>
-            <tbody>
-              {spending_by_category.map((cat) => (
-                <tr key={cat.id}>
-                  <td>{cat.category_name}</td>
-                  <td>{cat.expense_count}</td>
-                  <td>{fmt(cat.total_amount)}</td>
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Expenses</th>
+                  <th>Total Spent</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {spending_by_category.map((cat) => (
+                  <tr key={cat.id}>
+                    <td>{cat.category_name}</td>
+                    <td>{cat.expense_count}</td>
+                    <td>{fmt(cat.total_amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
@@ -160,28 +162,30 @@ function InsightsTab({ insights }: { insights: AdminInsights }) {
           {recent_expenses.length === 0 ? (
             <p className="empty-msg">No expenses yet.</p>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>User</th>
-                  <th>Category</th>
-                  <th>Amount</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent_expenses.map((exp) => (
-                  <tr key={exp.id}>
-                    <td>{exp.title}</td>
-                    <td>{exp.user_name}</td>
-                    <td>{exp.category_name}</td>
-                    <td>{fmt(exp.amount)}</td>
-                    <td>{new Date(exp.expense_date).toLocaleDateString()}</td>
+            <div className="admin-table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>User</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Date</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {recent_expenses.map((exp) => (
+                    <tr key={exp.id}>
+                      <td>{exp.title}</td>
+                      <td>{exp.user_name}</td>
+                      <td>{exp.category_name}</td>
+                      <td>{fmt(exp.amount)}</td>
+                      <td>{new Date(exp.expense_date).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
 
@@ -190,28 +194,30 @@ function InsightsTab({ insights }: { insights: AdminInsights }) {
           {recent_users.length === 0 ? (
             <p className="empty-msg">No users yet.</p>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Joined</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent_users.map((u) => (
-                  <tr key={u.id}>
-                    <td>{u.name}</td>
-                    <td>{u.email}</td>
-                    <td>
-                      <span className={`role-badge role-${u.role}`}>{u.role}</span>
-                    </td>
-                    <td>{new Date(u.created_at).toLocaleDateString()}</td>
+            <div className="admin-table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Joined</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {recent_users.map((u) => (
+                    <tr key={u.id}>
+                      <td>{u.name}</td>
+                      <td>{u.email}</td>
+                      <td>
+                        <span className={`role-badge role-${u.role}`}>{u.role}</span>
+                      </td>
+                      <td>{new Date(u.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
       </div>
@@ -227,7 +233,7 @@ function CategoriesTab() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  function loadCategories() {
+  const loadCategories = useCallback(() => {
     setLoading(true);
     apiGet<CategoriesResponse>('/categories')
       .then((data) => setCategories(data.categories))
@@ -235,13 +241,13 @@ function CategoriesTab() {
         setError(err instanceof Error ? err.message : 'Failed to load categories')
       )
       .finally(() => setLoading(false));
-  }
+  }, []);
 
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [loadCategories]);
 
-  async function handleCreate(e: FormEvent) {
+  async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
     try {
@@ -305,7 +311,8 @@ function CategoriesTab() {
         <button type="submit" className="btn-primary">Add</button>
       </form>
 
-      <table className="admin-table category-table">
+      <div className="admin-table-wrapper">
+        <table className="admin-table category-table">
         <thead>
           <tr>
             <th>Name</th>
@@ -346,6 +353,7 @@ function CategoriesTab() {
           ))}
         </tbody>
       </table>
+      </div>
     </section>
   );
 }
