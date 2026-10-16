@@ -101,37 +101,57 @@ const updateCategory = async (req, res) => {
 };
 
 const deleteCategory = async (req, res) => {
+  const client = await pool.connect();
+
   try {
     const { id } = req.params;
 
-    const result = await pool.query(
-      `DELETE FROM categories
-       WHERE id = $1
-       RETURNING id`,
+    const existing = await client.query(
+      `SELECT id FROM categories WHERE id = $1`,
       [id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: 'Category not found',
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    // Ensure the fallback "Uncategorized" category exists
+    const fallback = await client.query(
+      `INSERT INTO categories (name)
+       VALUES ('Uncategorized')
+       ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+       RETURNING id`
+    );
+    const fallbackId = fallback.rows[0].id;
+
+    if (String(fallbackId) === String(id)) {
+      return res.status(400).json({
+        message: 'Cannot delete the Uncategorized fallback category',
       });
     }
 
-    return res.json({
-      message: 'Category deleted successfully',
-    });
+    await client.query('BEGIN');
+
+    // Reassign any expenses using this category to Uncategorized
+    await client.query(
+      `UPDATE expenses SET category_id = $1 WHERE category_id = $2`,
+      [fallbackId, id]
+    );
+
+    await client.query(`DELETE FROM categories WHERE id = $1`, [id]);
+
+    await client.query('COMMIT');
+
+    return res.json({ message: 'Category deleted successfully' });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Delete category error:', error);
-
-    if (error.code === '23503') {
-      return res.status(409).json({
-        message: 'Category cannot be deleted because it is used by an expense',
-      });
-    }
 
     return res.status(500).json({
       message: 'Server error while deleting category',
     });
+  } finally {
+    client.release();
   }
 };
 

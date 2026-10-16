@@ -1,0 +1,310 @@
+.admin-page {
+  padding: 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.admin-page h1 {
+  margin-bottom: 1.25rem;
+  font-size: 1.75rem;
+  color: #1a202c;
+}
+
+.admin-error {
+  color: #e53e3e;
+  margin-bottom: 1rem;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+
+.admin-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 1.75rem;
+}
+
+.tab-btn {
+  padding: 0.6rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #718096;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-btn:hover {
+  color: #2d3748;
+}
+
+.tab-btn.active {
+  color: #3182ce;
+  border-bottom-color: #3182ce;
+}
+
+/* ── Summary cards ────────────────────────────────────────────────────────── */
+
+.admin-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-stat-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+/* ── Cards & grid ─────────────────────────────────────────────────────────── */
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-card h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #2d3748;
+}
+
+.empty-msg {
+  color: #a0aec0;
+  font-size: 0.875rem;
+}
+
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.admin-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 2px solid #e2e8f0;
+  color: #718096;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.admin-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #f7fafc;
+  color: #4a5568;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Role badge ───────────────────────────────────────────────────────────── */
+
+.role-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.role-user {
+  background: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.role-admin {
+  background: #faf5ff;
+  color: #6b46c1;
+}
+
+/* ── Rank list ────────────────────────────────────────────────────────────── */
+
+.rank-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rank-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f7fafc;
+}
+
+.rank-item:last-child {
+  border-bottom: none;
+}
+
+.rank-num {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: #edf2f7;
+  color: #4a5568;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rank-name {
+  flex: 1;
+  font-size: 0.875rem;
+  color: #2d3748;
+}
+
+.rank-count {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* ── Category form ────────────────────────────────────────────────────────── */
+
+.category-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.category-form input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.category-form input:focus {
+  border-color: #3182ce;
+}
+
+.inline-edit {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #3182ce;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  width: 100%;
+  outline: none;
+}
+
+.action-cell {
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+
+.btn-primary {
+  padding: 0.5rem 1rem;
+  background: #3182ce;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #2b6cb0;
+}
+
+.btn-edit {
+  padding: 0.3rem 0.65rem;
+  background: #edf2f7;
+  color: #2d3748;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btn-edit:hover {
+  background: #e2e8f0;
+}
+
+.btn-save {
+  padding: 0.3rem 0.65rem;
+  background: #38a169;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btn-save:hover {
+  background: #2f855a;
+}
+
+.btn-cancel {
+  padding: 0.3rem 0.65rem;
+  background: #edf2f7;
+  color: #4a5568;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btn-delete {
+  padding: 0.3rem 0.65rem;
+  background: #fff5f5;
+  color: #e53e3e;
+  border: 1px solid #fed7d7;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btn-delete:hover {
+  background: #fed7d7;
+}

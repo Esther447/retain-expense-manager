@@ -101,6 +101,101 @@ const getDashboardInsights = async (req, res) => {
   }
 };
 
+const getAdminInsights = async (req, res) => {
+  try {
+    const totalsResult = await pool.query(
+      `SELECT
+         (SELECT COUNT(*) FROM users) AS total_users,
+         COUNT(e.id) AS total_expenses,
+         COALESCE(SUM(e.amount), 0) AS total_spending
+       FROM expenses e`
+    );
+
+    const currentMonthResult = await pool.query(
+      `SELECT COUNT(*) AS current_month_expenses
+       FROM expenses
+       WHERE DATE_TRUNC('month', expense_date) = DATE_TRUNC('month', CURRENT_DATE)`
+    );
+
+    const spendingByCategoryResult = await pool.query(
+      `SELECT
+         c.id,
+         c.name AS category_name,
+         COALESCE(SUM(e.amount), 0) AS total_amount,
+         COUNT(e.id) AS expense_count
+       FROM categories c
+       LEFT JOIN expenses e ON e.category_id = c.id
+       GROUP BY c.id, c.name
+       ORDER BY total_amount DESC`
+    );
+
+    const topCategoriesResult = await pool.query(
+      `SELECT
+         c.name AS category_name,
+         COUNT(e.id) AS expense_count
+       FROM categories c
+       LEFT JOIN expenses e ON e.category_id = c.id
+       GROUP BY c.id, c.name
+       ORDER BY expense_count DESC
+       LIMIT 5`
+    );
+
+    const bottomCategoriesResult = await pool.query(
+      `SELECT
+         c.name AS category_name,
+         COUNT(e.id) AS expense_count
+       FROM categories c
+       LEFT JOIN expenses e ON e.category_id = c.id
+       GROUP BY c.id, c.name
+       ORDER BY expense_count ASC
+       LIMIT 5`
+    );
+
+    const recentExpensesResult = await pool.query(
+      `SELECT
+         e.id,
+         e.title,
+         e.amount,
+         u.name AS user_name,
+         c.name AS category_name,
+         e.expense_date
+       FROM expenses e
+       JOIN users u ON u.id = e.user_id
+       JOIN categories c ON c.id = e.category_id
+       ORDER BY e.created_at DESC
+       LIMIT 10`
+    );
+
+    const recentUsersResult = await pool.query(
+      `SELECT id, name, email, role, created_at
+       FROM users
+       ORDER BY created_at DESC
+       LIMIT 10`
+    );
+
+    return res.json({
+      summary: {
+        total_users: Number(totalsResult.rows[0].total_users),
+        total_expenses: Number(totalsResult.rows[0].total_expenses),
+        total_spending: Number(totalsResult.rows[0].total_spending),
+        current_month_expenses: Number(currentMonthResult.rows[0].current_month_expenses),
+      },
+      spending_by_category: spendingByCategoryResult.rows,
+      top_categories: topCategoriesResult.rows,
+      bottom_categories: bottomCategoriesResult.rows,
+      recent_expenses: recentExpensesResult.rows,
+      recent_users: recentUsersResult.rows,
+    });
+  } catch (error) {
+    console.error('Admin insights error:', error);
+
+    return res.status(500).json({
+      message: 'Server error while fetching admin insights',
+    });
+  }
+};
+
 module.exports = {
   getDashboardInsights,
+  getAdminInsights,
 };

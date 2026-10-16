@@ -9,6 +9,7 @@ import EditExpense from './pages/EditExpense';
 import Budget from './pages/Budget';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -72,6 +73,14 @@ function App() {
 
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </div>
     </BrowserRouter>
