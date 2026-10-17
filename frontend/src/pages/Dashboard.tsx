@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { TrendingUp, Wallet, ArrowUpCircle, BarChart2, Plus, Target, List, Pencil, Trash2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { apiGet } from '../services/api';
 
@@ -37,6 +39,10 @@ interface RecentExpense {
   category_name: string;
   expense_date: string;
   payment_method: string;
+  category_id: number;
+  notes?: string;
+  updated_at?: string;
+  created_at?: string;
 }
 
 interface DashboardData {
@@ -47,6 +53,11 @@ interface DashboardData {
   highest_expense: HighestExpense | null;
   recent_expenses: RecentExpense[];
 }
+
+const CHART_COLORS = [
+  '#06B6D4', '#8B5CF6', '#34D399', '#FBBF24',
+  '#F87171', '#60A5FA', '#A78BFA', '#2DD4BF',
+];
 
 function fmt(n: number) {
   return `RWF ${Number(n).toLocaleString()}`;
@@ -71,7 +82,12 @@ function Dashboard() {
     return (
       <>
         <Navbar />
-        <main className="dashboard"><p>Loading...</p></main>
+        <main className="dashboard">
+          <div className="dash-loading">
+            <div className="dash-spinner" />
+            <p>Loading dashboard…</p>
+          </div>
+        </main>
       </>
     );
   }
@@ -85,19 +101,30 @@ function Dashboard() {
     );
   }
 
-  const totalSpent = data?.summary.total_spending ?? 0;
-  const budgetAmount = data?.budget ? Number(data.budget.amount) : 0;
+  const totalSpent     = data?.summary.total_spending ?? 0;
+  const totalExpenses  = data?.summary.total_expenses ?? 0;
+  const avgExpense     = data?.summary.average_expense ?? 0;
+  const budgetAmount   = data?.budget ? Number(data.budget.amount) : 0;
   const budgetRemaining = data?.budget_remaining ?? null;
   const highestExpense = data?.highest_expense ?? null;
   const recentExpenses = data?.recent_expenses ?? [];
-  const spendingByCategory = data?.spending_by_category ?? [];
+  const spendingByCategory = (data?.spending_by_category ?? []).filter(
+    (c) => Number(c.total_amount) > 0,
+  );
 
-  const budgetStatus = useMemo(() => {
-    if (budgetAmount <= 0) return 'No Budget Set';
-    if (totalSpent > budgetAmount) return 'Over Budget';
-    if (totalSpent >= budgetAmount * 0.8) return 'Approaching Budget';
-    return 'Within Budget';
-  }, [totalSpent, budgetAmount]);
+  const pct = budgetAmount > 0 ? Math.min((totalSpent / budgetAmount) * 100, 100) : 0;
+  let budgetStatus = 'No Budget Set';
+  let progressClass = 'within';
+  if (budgetAmount > 0) {
+    if (totalSpent > budgetAmount)            { budgetStatus = 'Over Budget';        progressClass = 'over'; }
+    else if (totalSpent >= budgetAmount * 0.8) { budgetStatus = 'Approaching Budget'; progressClass = 'approach'; }
+    else                                       { budgetStatus = 'Within Budget';      progressClass = 'within'; }
+  }
+
+  const chartData = spendingByCategory.map((c) => ({
+    name: c.category_name,
+    value: Number(c.total_amount),
+  }));
 
   return (
     <>
@@ -107,57 +134,131 @@ function Dashboard() {
         <header className="dashboard-header">
           <div>
             <h1>Dashboard</h1>
-            <p>Welcome to your Retain expense manager.</p>
+            <p>Your personal finance overview.</p>
           </div>
-          <button type="button" onClick={() => navigate('/expenses/add')}>
-            + Add Expense
+          <button type="button" className="btn-primary" onClick={() => navigate('/expenses/add')}>
+            <Plus size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            Add Expense
           </button>
         </header>
 
+        {/* ── KPI Cards ── */}
         <section className="overview">
           <div className="summary-card">
+            <div className="kpi-icon kpi-cyan"><TrendingUp size={18} /></div>
             <h2>Total Spent</h2>
             <p>{fmt(totalSpent)}</p>
+            <small>{totalExpenses} expenses total</small>
           </div>
 
           <div className="summary-card">
+            <div className="kpi-icon kpi-violet"><Wallet size={18} /></div>
             <h2>Remaining Budget</h2>
             <p>{budgetRemaining !== null ? fmt(Math.max(budgetRemaining, 0)) : '—'}</p>
-          </div>
-
-          <div className="summary-card">
-            <h2>Highest Expense</h2>
-            <p>{highestExpense ? fmt(highestExpense.amount) : '—'}</p>
-            {highestExpense && (
-              <small>{highestExpense.title}</small>
+            {budgetAmount > 0 ? (
+              <div className="budget-progress-wrap">
+                <div className="budget-progress-bar">
+                  <div className={`budget-progress-fill ${progressClass}`} style={{ width: `${pct}%` }} />
+                </div>
+                <div className="budget-progress-label">
+                  <span>{budgetStatus}</span>
+                  <span>{Math.round(pct)}%</span>
+                </div>
+              </div>
+            ) : (
+              <small>No budget set</small>
             )}
           </div>
 
           <div className="summary-card">
-            <h2>Budget Status</h2>
-            <p>{budgetStatus}</p>
+            <div className="kpi-icon kpi-amber"><ArrowUpCircle size={18} /></div>
+            <h2>Highest Expense</h2>
+            <p>{highestExpense ? fmt(highestExpense.amount) : '—'}</p>
+            {highestExpense && <small>{highestExpense.title}</small>}
           </div>
 
           <div className="summary-card">
-            <h2>Total Expenses</h2>
-            <p>{data?.summary.total_expenses ?? 0}</p>
-          </div>
-
-          <div className="summary-card">
-            <h2>Average Expense</h2>
-            <p>{data?.summary.average_expense ? fmt(data.summary.average_expense) : '—'}</p>
+            <div className="kpi-icon kpi-green"><BarChart2 size={18} /></div>
+            <h2>Avg. Expense</h2>
+            <p>{avgExpense ? fmt(avgExpense) : '—'}</p>
+            <small>per transaction</small>
           </div>
         </section>
 
+        {/* ── Middle: Donut Chart + Quick Actions ── */}
+        <div className="dashboard-middle">
+          <section className="dashboard-section">
+            <div className="section-header">
+              <h2>Spending by Category</h2>
+            </div>
+
+            {chartData.length === 0 ? (
+              <p style={{ color: 'var(--muted)', fontSize: '14px' }}>No spending data yet.</p>
+            ) : (
+              <div className="chart-layout">
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={110}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {chartData.map((_, i) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) => [fmt(Number(value ?? 0)), 'Spent']}
+                      contentStyle={{
+                        background: 'rgba(30,41,59,0.95)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 8,
+                        color: '#F8FAFC',
+                        fontSize: 13,
+                      }}
+                    />
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value) => (
+                        <span style={{ color: '#94A3B8', fontSize: 12 }}>{value}</span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </section>
+
+          <div className="quick-actions">
+            <h2>Quick Actions</h2>
+            <button type="button" className="quick-action-btn" onClick={() => navigate('/expenses/add')}>
+              <span className="qa-icon"><Plus size={16} /></span>
+              Add New Expense
+            </button>
+            <button type="button" className="quick-action-btn" onClick={() => navigate('/budget')}>
+              <span className="qa-icon"><Target size={16} /></span>
+              Set Monthly Budget
+            </button>
+            <button type="button" className="quick-action-btn" onClick={() => navigate('/expenses')}>
+              <span className="qa-icon"><List size={16} /></span>
+              View All Expenses
+            </button>
+          </div>
+        </div>
+
+        {/* ── Recent Expenses ── */}
         <section className="dashboard-section">
           <div className="section-header">
             <h2>Recent Expenses</h2>
-            <button type="button" onClick={() => navigate('/expenses')}>
-              View All
-            </button>
+            <button type="button" onClick={() => navigate('/expenses')}>View All</button>
           </div>
 
-          <div className="expenses-table-wrapper">
+          <div className="table-wrapper">
             <table className="expenses-table">
               <thead>
                 <tr>
@@ -166,44 +267,45 @@ function Dashboard() {
                   <th>Amount</th>
                   <th>Date</th>
                   <th>Payment</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {recentExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={5}>No expenses yet.</td>
+                    <td colSpan={6} style={{ color: 'var(--muted)' }}>No expenses yet.</td>
                   </tr>
                 ) : (
                   recentExpenses.map((expense) => (
                     <tr key={expense.id}>
                       <td>{expense.title}</td>
-                      <td>{expense.category_name}</td>
+                      <td><span className="cat-badge">{expense.category_name}</span></td>
                       <td>{fmt(expense.amount)}</td>
-                      <td>{new Date(expense.expense_date).toLocaleDateString()}</td>
-                      <td>{expense.payment_method}</td>
+                      <td style={{ color: 'var(--muted)' }}>{new Date(expense.expense_date).toLocaleDateString()}</td>
+                      <td style={{ color: 'var(--muted)', fontSize: '13px' }}>{expense.payment_method}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="action-button edit-button"
+                          onClick={() => navigate('/expenses/edit', { state: expense })}
+                          title="Edit"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="action-button delete-button"
+                          onClick={() => navigate('/expenses')}
+                          title="Delete"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
-          </div>
-        </section>
-
-        <section className="dashboard-section">
-          <h2>Spending by Category</h2>
-          <div className="category-breakdown">
-            {spendingByCategory.filter((c) => Number(c.total_amount) > 0).length === 0 ? (
-              <p style={{ color: '#6b7280' }}>No spending data yet.</p>
-            ) : (
-              spendingByCategory
-                .filter((c) => Number(c.total_amount) > 0)
-                .map((cat) => (
-                  <div key={cat.category_id} className="category-row">
-                    <span>{cat.category_name}</span>
-                    <strong>{fmt(cat.total_amount)}</strong>
-                  </div>
-                ))
-            )}
           </div>
         </section>
       </main>

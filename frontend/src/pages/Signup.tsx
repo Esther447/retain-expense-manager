@@ -6,12 +6,7 @@ import { apiPost } from '../services/api';
 
 interface SignupResponse {
   token: string;
-  user: {
-    id: number;
-    name: string;
-    email: string;
-    role: 'user' | 'admin';
-  };
+  user: { id: number; name: string; email: string; role: 'user' | 'admin' };
 }
 
 function Signup() {
@@ -27,7 +22,6 @@ function Signup() {
     event.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const data = await apiPost<SignupResponse>('/auth/signup', { name, email, password });
       localStorage.setItem('token', data.token);
@@ -42,9 +36,11 @@ function Signup() {
 
   return (
     <main className="auth-page">
+      <div className="auth-glow" />
       <div className="auth-card">
+        <div className="auth-brand">Retain</div>
         <h1>Create Account</h1>
-        <p>Start managing your expenses with Retain.</p>
+        <p>Start managing your expenses today.</p>
 
         {error && <p className="auth-error">{error}</p>}
 
@@ -55,8 +51,8 @@ function Signup() {
               id="name"
               type="text"
               value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Enter your name"
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your full name"
               required
             />
           </div>
@@ -67,8 +63,8 @@ function Signup() {
               id="email"
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Enter your email"
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
               required
             />
           </div>
@@ -79,14 +75,14 @@ function Signup() {
               id="password"
               type="password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Create a password"
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Min. 6 characters"
               required
             />
           </div>
 
           <button type="submit" disabled={loading}>
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? 'Creating account…' : 'Create Account'}
           </button>
         </form>
 

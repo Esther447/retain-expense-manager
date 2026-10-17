@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+} from 'recharts';
+import {
+  Users, Receipt, DollarSign, CalendarDays,
+  Plus, Pencil, Trash2, Check, X, ShieldAlert,
+} from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete } from '../services/api';
 import Navbar from '../components/Navbar';
 import './AdminDashboard.css';
@@ -66,60 +73,113 @@ function fmt(amount: number) {
   return `RWF ${Number(amount).toLocaleString()}`;
 }
 
-// ── Sub-components ───────────────────────────────────────────────────────────
+const CHART_COLORS = [
+  '#06B6D4', '#8B5CF6', '#34D399', '#FBBF24',
+  '#F87171', '#60A5FA', '#A78BFA', '#2DD4BF',
+];
+
+// ── Delete Confirmation Modal ─────────────────────────────────────────────────
+
+interface DeleteModalProps {
+  name: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function DeleteModal({ name, onConfirm, onCancel }: DeleteModalProps) {
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-icon"><ShieldAlert size={28} /></div>
+        <h3>Delete Category</h3>
+        <p>
+          Are you sure you want to delete <strong>"{name}"</strong>?
+          All expenses in this category will be re-assigned to{' '}
+          <strong>Uncategorized</strong>.
+        </p>
+        <div className="modal-actions">
+          <button className="btn-cancel" onClick={onCancel}>Cancel</button>
+          <button className="btn-delete" onClick={onConfirm}>Delete</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── InsightsTab ───────────────────────────────────────────────────────────────
 
 function InsightsTab({ insights }: { insights: AdminInsights }) {
-  const { summary, spending_by_category, top_categories, bottom_categories, recent_expenses, recent_users } = insights;
+  const {
+    summary, spending_by_category, top_categories,
+    bottom_categories, recent_expenses, recent_users,
+  } = insights;
+
+  const chartData = spending_by_category
+    .filter((c) => Number(c.total_amount) > 0)
+    .slice(0, 8)
+    .map((c) => ({ name: c.category_name, value: Number(c.total_amount) }));
 
   return (
     <>
+      {/* KPI cards */}
       <section className="admin-summary">
         <div className="admin-stat-card">
+          <div className="admin-kpi-icon kpi-cyan"><Users size={18} /></div>
           <span className="stat-label">Total Users</span>
           <span className="stat-value">{summary.total_users}</span>
         </div>
         <div className="admin-stat-card">
+          <div className="admin-kpi-icon kpi-violet"><Receipt size={18} /></div>
           <span className="stat-label">Total Expenses</span>
           <span className="stat-value">{summary.total_expenses}</span>
         </div>
         <div className="admin-stat-card">
+          <div className="admin-kpi-icon kpi-green"><DollarSign size={18} /></div>
           <span className="stat-label">Total Value</span>
           <span className="stat-value">{fmt(summary.total_spending)}</span>
         </div>
         <div className="admin-stat-card">
+          <div className="admin-kpi-icon kpi-amber"><CalendarDays size={18} /></div>
           <span className="stat-label">This Month</span>
           <span className="stat-value">{summary.current_month_expenses}</span>
         </div>
       </section>
 
-      <section className="admin-card">
-        <h2>Spending per Category</h2>
-        {spending_by_category.length === 0 ? (
-          <p className="empty-msg">No expenses recorded yet.</p>
-        ) : (
-          <div className="admin-table-wrapper">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Expenses</th>
-                  <th>Total Spent</th>
-                </tr>
-              </thead>
-              <tbody>
-                {spending_by_category.map((cat) => (
-                  <tr key={cat.id}>
-                    <td>{cat.category_name}</td>
-                    <td>{cat.expense_count}</td>
-                    <td>{fmt(cat.total_amount)}</td>
-                  </tr>
+      {/* Bar chart */}
+      {chartData.length > 0 && (
+        <section className="admin-card">
+          <h2>Spending per Category</h2>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+              <XAxis
+                dataKey="name"
+                tick={{ fill: '#94A3B8', fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis hide />
+              <Tooltip
+                formatter={(value) => [fmt(Number(value ?? 0)), 'Spent']}
+                contentStyle={{
+                  background: 'rgba(30,41,59,0.95)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8,
+                  color: '#F8FAFC',
+                  fontSize: 12,
+                }}
+                cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+              />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                {chartData.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </section>
+      )}
 
+      {/* Top / Bottom categories */}
       <div className="admin-grid">
         <section className="admin-card">
           <h2>Top 5 Most-Used Categories</h2>
@@ -156,6 +216,7 @@ function InsightsTab({ insights }: { insights: AdminInsights }) {
         </section>
       </div>
 
+      {/* Recent feeds */}
       <div className="admin-grid">
         <section className="admin-card">
           <h2>Recently Added Expenses</h2>
@@ -177,10 +238,10 @@ function InsightsTab({ insights }: { insights: AdminInsights }) {
                   {recent_expenses.map((exp) => (
                     <tr key={exp.id}>
                       <td>{exp.title}</td>
-                      <td>{exp.user_name}</td>
-                      <td>{exp.category_name}</td>
+                      <td style={{ color: 'var(--muted)' }}>{exp.user_name}</td>
+                      <td><span className="cat-badge">{exp.category_name}</span></td>
                       <td>{fmt(exp.amount)}</td>
-                      <td>{new Date(exp.expense_date).toLocaleDateString()}</td>
+                      <td style={{ color: 'var(--muted)' }}>{new Date(exp.expense_date).toLocaleDateString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -208,11 +269,9 @@ function InsightsTab({ insights }: { insights: AdminInsights }) {
                   {recent_users.map((u) => (
                     <tr key={u.id}>
                       <td>{u.name}</td>
-                      <td>{u.email}</td>
-                      <td>
-                        <span className={`role-badge role-${u.role}`}>{u.role}</span>
-                      </td>
-                      <td>{new Date(u.created_at).toLocaleDateString()}</td>
+                      <td style={{ color: 'var(--muted)', fontSize: 12 }}>{u.email}</td>
+                      <td><span className={`role-badge role-${u.role}`}>{u.role}</span></td>
+                      <td style={{ color: 'var(--muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -225,11 +284,14 @@ function InsightsTab({ insights }: { insights: AdminInsights }) {
   );
 }
 
+// ── CategoriesTab ─────────────────────────────────────────────────────────────
+
 function CategoriesTab() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -238,14 +300,12 @@ function CategoriesTab() {
     apiGet<CategoriesResponse>('/categories')
       .then((data) => setCategories(data.categories))
       .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : 'Failed to load categories')
+        setError(err instanceof Error ? err.message : 'Failed to load categories'),
       )
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+  useEffect(() => { loadCategories(); }, [loadCategories]);
 
   async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -259,17 +319,6 @@ function CategoriesTab() {
     }
   }
 
-  function startEdit(cat: Category) {
-    setEditingId(cat.id);
-    setEditingName(cat.name);
-    setError('');
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
-    setEditingName('');
-  }
-
   async function handleUpdate(id: number) {
     setError('');
     try {
@@ -281,84 +330,107 @@ function CategoriesTab() {
     }
   }
 
-  async function handleDelete(id: number, name: string) {
-    if (!window.confirm(`Delete "${name}"? Any expenses in this category will be moved to Uncategorized.`)) return;
+  async function confirmDelete() {
+    if (!deleteTarget) return;
     setError('');
     try {
-      await apiDelete(`/categories/${id}`);
+      await apiDelete(`/categories/${deleteTarget.id}`);
+      setDeleteTarget(null);
       loadCategories();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to delete category');
+      setDeleteTarget(null);
     }
   }
 
-  if (loading) return <p>Loading categories...</p>;
+  if (loading) return <p style={{ color: 'var(--muted)', padding: '16px 0' }}>Loading categories…</p>;
 
   return (
-    <section className="admin-card">
-      <h2>Manage Categories</h2>
-
-      {error && <p className="admin-error">{error}</p>}
-
-      <form className="category-form" onSubmit={handleCreate}>
-        <input
-          type="text"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          placeholder="New category name"
-          required
+    <>
+      {deleteTarget && (
+        <DeleteModal
+          name={deleteTarget.name}
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteTarget(null)}
         />
-        <button type="submit" className="btn-primary">Add</button>
-      </form>
+      )}
 
-      <div className="admin-table-wrapper">
-        <table className="admin-table category-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {categories.map((cat) => (
-            <tr key={cat.id}>
-              <td>
-                {editingId === cat.id ? (
-                  <input
-                    className="inline-edit"
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                    autoFocus
-                  />
-                ) : (
-                  cat.name
-                )}
-              </td>
-              <td className="action-cell">
-                {editingId === cat.id ? (
-                  <>
-                    <button className="btn-save" onClick={() => handleUpdate(cat.id)}>Save</button>
-                    <button className="btn-cancel" onClick={cancelEdit}>Cancel</button>
-                  </>
-                ) : (
-                  <>
-                    <button className="btn-edit" onClick={() => startEdit(cat)}>Edit</button>
-                    {cat.name !== 'Uncategorized' && (
-                      <button className="btn-delete" onClick={() => handleDelete(cat.id, cat.name)}>Delete</button>
+      <section className="admin-card">
+        <h2>Manage Categories</h2>
+
+        {error && <p className="admin-error">{error}</p>}
+
+        <form className="category-form" onSubmit={handleCreate}>
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="New category name"
+            required
+          />
+          <button type="submit" className="btn-primary">
+            <Plus size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+            Add
+          </button>
+        </form>
+
+        <div className="admin-table-wrapper">
+          <table className="admin-table category-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((cat) => (
+                <tr key={cat.id}>
+                  <td>
+                    {editingId === cat.id ? (
+                      <input
+                        className="inline-edit"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        autoFocus
+                      />
+                    ) : (
+                      cat.name
                     )}
-                  </>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      </div>
-    </section>
+                  </td>
+                  <td className="action-cell">
+                    {editingId === cat.id ? (
+                      <>
+                        <button className="btn-save" onClick={() => handleUpdate(cat.id)}>
+                          <Check size={13} />
+                        </button>
+                        <button className="btn-cancel" onClick={() => { setEditingId(null); setEditingName(''); }}>
+                          <X size={13} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="btn-edit" onClick={() => { setEditingId(cat.id); setEditingName(cat.name); setError(''); }}>
+                          <Pencil size={13} />
+                        </button>
+                        {cat.name !== 'Uncategorized' && (
+                          <button className="btn-delete" onClick={() => setDeleteTarget(cat)}>
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
   );
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 
 type Tab = 'insights' | 'categories';
 
@@ -372,7 +444,7 @@ function AdminDashboard() {
     apiGet<AdminInsights>('/dashboard/admin-insights')
       .then(setInsights)
       .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : 'Failed to load admin insights')
+        setError(err instanceof Error ? err.message : 'Failed to load admin insights'),
       )
       .finally(() => setLoading(false));
   }, []);
@@ -383,32 +455,29 @@ function AdminDashboard() {
       <main className="admin-page">
         <h1>Admin Dashboard</h1>
 
-      <div className="admin-tabs">
-        <button
-          className={`tab-btn ${tab === 'insights' ? 'active' : ''}`}
-          onClick={() => setTab('insights')}
-        >
-          Insights
-        </button>
-        <button
-          className={`tab-btn ${tab === 'categories' ? 'active' : ''}`}
-          onClick={() => setTab('categories')}
-        >
-          Categories
-        </button>
-      </div>
+        <div className="admin-tabs">
+          <button className={`tab-btn ${tab === 'insights' ? 'active' : ''}`} onClick={() => setTab('insights')}>
+            Insights
+          </button>
+          <button className={`tab-btn ${tab === 'categories' ? 'active' : ''}`} onClick={() => setTab('categories')}>
+            Categories
+          </button>
+        </div>
 
-      {tab === 'insights' && (
-        loading ? (
-          <p>Loading...</p>
-        ) : error ? (
-          <p className="admin-error">{error}</p>
-        ) : insights ? (
-          <InsightsTab insights={insights} />
-        ) : null
-      )}
+        {tab === 'insights' && (
+          loading ? (
+            <div className="dash-loading">
+              <div className="dash-spinner" />
+              <p>Loading insights…</p>
+            </div>
+          ) : error ? (
+            <p className="admin-error">{error}</p>
+          ) : insights ? (
+            <InsightsTab insights={insights} />
+          ) : null
+        )}
 
-      {tab === 'categories' && <CategoriesTab />}
+        {tab === 'categories' && <CategoriesTab />}
       </main>
     </>
   );

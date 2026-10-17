@@ -113,107 +113,123 @@ function Budget() {
         </header>
 
         {loading ? (
-          <p>Loading...</p>
+          <div className="budget-loading">
+            <div className="budget-loading-spinner" />
+            <span>Loading budget…</span>
+          </div>
         ) : (
-          <section className="budget-grid">
-            <div className="budget-card">
-              <h2>Set Monthly Budget</h2>
+          <>
+            <section className="budget-grid">
+              <div className="budget-card">
+                <h2>Set Monthly Budget</h2>
 
-              {error && <p className="error-message">{error}</p>}
-              {successMsg && <p className="success-message">{successMsg}</p>}
+                {error && <p className="error-message">{error}</p>}
+                {successMsg && <p className="success-message">{successMsg}</p>}
 
-              <form onSubmit={handleSubmit}>
-                <div className="form-group">
-                  <label htmlFor="budget">Budget Amount (RWF)</label>
-                  <input
-                    id="budget"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={budgetInput}
-                    onChange={(e) => setBudgetInput(e.target.value)}
-                    placeholder="Enter your monthly budget"
-                    required
-                  />
+                <form onSubmit={handleSubmit}>
+                  <div className="form-group">
+                    <label htmlFor="budget">Budget Amount (RWF)</label>
+                    <input
+                      id="budget"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={budgetInput}
+                      onChange={(e) => setBudgetInput(e.target.value)}
+                      placeholder="Enter your monthly budget"
+                      required
+                    />
+                  </div>
+                  <button type="submit" disabled={saving}>
+                    {saving ? 'Saving...' : data?.budget ? 'Update Budget' : 'Save Budget'}
+                  </button>
+                </form>
+              </div>
+
+              <div className="budget-card">
+                <h2>Budget Overview</h2>
+
+                <div className="budget-stat">
+                  <span>Monthly Budget</span>
+                  <strong>RWF {budgetAmount.toLocaleString()}</strong>
                 </div>
-                <button type="submit" disabled={saving}>
-                  {saving ? 'Saving...' : data?.budget ? 'Update Budget' : 'Save Budget'}
-                </button>
-              </form>
-            </div>
 
-            <div className="budget-card">
-              <h2>Budget Overview</h2>
+                <div className="budget-stat">
+                  <span>Total Spent</span>
+                  <strong>RWF {Number(totalSpent).toLocaleString()}</strong>
+                </div>
 
-              <div className="budget-stat">
-                <span>Monthly Budget</span>
-                <strong>RWF {budgetAmount.toLocaleString()}</strong>
-              </div>
+                <div className="budget-stat">
+                  <span>Total Expenses</span>
+                  <strong>{totalExpenses}</strong>
+                </div>
 
-              <div className="budget-stat">
-                <span>Total Spent</span>
-                <strong>RWF {Number(totalSpent).toLocaleString()}</strong>
-              </div>
+                <div className="budget-stat">
+                  <span>Average Expense</span>
+                  <strong>
+                    {averageExpense > 0 ? `RWF ${Number(averageExpense).toLocaleString()}` : '—'}
+                  </strong>
+                </div>
 
-              <div className="budget-stat">
-                <span>Total Expenses</span>
-                <strong>{totalExpenses}</strong>
-              </div>
+                <div className="budget-stat">
+                  <span>Remaining Budget</span>
+                  <strong>
+                    {budgetRemaining !== null
+                      ? `RWF ${Math.max(budgetRemaining, 0).toLocaleString()}`
+                      : '—'}
+                  </strong>
+                </div>
 
-              <div className="budget-stat">
-                <span>Average Expense</span>
-                <strong>{averageExpense > 0 ? `RWF ${Number(averageExpense).toLocaleString()}` : '—'}</strong>
-              </div>
-
-              <div className="budget-stat">
-                <span>Remaining Budget</span>
-                <strong>
-                  {budgetRemaining !== null
-                    ? `RWF ${Math.max(budgetRemaining, 0).toLocaleString()}`
-                    : '—'}
-                </strong>
-              </div>
-
-              <div className="budget-status">
-                <span>Status</span>
-                <strong>{budgetStatus}</strong>
-              </div>
-            </div>
-          </section>
-
-          {allBudgets.length > 0 && (
-            <section className="budget-card" style={{ marginTop: '24px' }}>
-              <h2>Budget History</h2>
-              <div className="expenses-table-wrapper">
-                <table className="expenses-table">
-                  <thead>
-                    <tr>
-                      <th>Month</th>
-                      <th>Amount</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allBudgets.map((b) => (
-                      <tr key={b.id}>
-                        <td>{new Date(b.month).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}</td>
-                        <td>RWF {Number(b.amount).toLocaleString()}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="action-button delete-button"
-                            onClick={() => handleDeleteBudget(b.id)}
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="budget-status">
+                  <span>Status</span>
+                  <strong className={`status-${
+                    budgetAmount === 0 ? 'within' :
+                    totalSpent > budgetAmount ? 'over' :
+                    totalSpent >= budgetAmount * 0.8 ? 'approach' : 'within'
+                  }`}>{budgetStatus}</strong>
+                </div>
               </div>
             </section>
-          )}
+
+            {allBudgets.length > 0 && (
+              <section className="budget-card" style={{ marginTop: '24px' }}>
+                <h2>Budget History</h2>
+                <div className="table-wrapper">
+                  <table className="expenses-table">
+                    <thead>
+                      <tr>
+                        <th>Month</th>
+                        <th>Amount</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allBudgets.map((b) => (
+                        <tr key={b.id}>
+                          <td>
+                            {new Date(b.month).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'long',
+                            })}
+                          </td>
+                          <td>RWF {Number(b.amount).toLocaleString()}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="action-button delete-button"
+                              onClick={() => handleDeleteBudget(b.id)}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+          </>
         )}
       </main>
     </>
