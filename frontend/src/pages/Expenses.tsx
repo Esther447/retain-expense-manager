@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Trash2, Plus, Search, X, ShieldAlert } from 'lucide-react';
+import { Pencil, Trash2, Plus, Search, X, ShieldAlert, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
 import Navbar from '../components/Navbar';
 import type { Expense, Category } from '../types/Expense';
@@ -14,10 +14,12 @@ import {
   setEndDate,
 } from '../redux/expenseFilterSlice';
 
-interface ExpensesResponse { expenses: Expense[]; }
+interface ExpensesResponse {
+  expenses: Expense[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
 interface CategoriesResponse { categories: Category[]; }
 
-// ── Delete modal ──────────────────────────────────────────────────────────────
 function DeleteExpenseModal({
   title,
   onConfirm,
@@ -45,7 +47,15 @@ function DeleteExpenseModal({
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+const SORT_MAP: Record<string, { sort_by: string; sort_order: string }> = {
+  'date-desc':   { sort_by: 'expense_date', sort_order: 'DESC' },
+  'date-asc':    { sort_by: 'expense_date', sort_order: 'ASC' },
+  'amount-desc': { sort_by: 'amount',       sort_order: 'DESC' },
+  'amount-asc':  { sort_by: 'amount',       sort_order: 'ASC' },
+};
+
+const PAGE_LIMIT = 10;
+
 function Expenses() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -55,32 +65,66 @@ function Expenses() {
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 1 });
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
 
-  const loadExpenses = useCallback(() => {
-    apiGet<ExpensesResponse>('/expenses?limit=100')
-      .then((data) => setExpenses(data.expenses))
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadExpenses = useCallback((currentPage: number) => {
+    setLoading(true);
+    const { sort_by, sort_order } = SORT_MAP[sortBy] ?? SORT_MAP['date-desc'];
+
+    const params = new URLSearchParams({
+      page: String(currentPage),
+      limit: String(PAGE_LIMIT),
+      sort_by,
+      sort_order,
+    });
+    if (search)        params.set('search', search);
+    if (category)      params.set('category_id', category);
+    if (paymentMethod) params.set('payment_method', paymentMethod);
+    if (startDate)     params.set('start_date', startDate);
+    if (endDate)       params.set('end_date', endDate);
+
+    apiGet<ExpensesResponse>(`/expenses?${params.toString()}`)
+      .then((data) => {
+        setExpenses(data.expenses);
+        setPagination(data.pagination);
+        setError('');
+      })
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : 'Failed to load expenses'),
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [search, category, paymentMethod, sortBy, startDate, endDate]);
+
+  // Debounce search; immediate for other filters
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(1);
+      loadExpenses(1);
+    }, search ? 350 : 0);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search, category, paymentMethod, sortBy, startDate, endDate, loadExpenses]);
 
   useEffect(() => {
-    loadExpenses();
-    apiGet<CategoriesResponse>('/categories').then((data) =>
-      setCategories(data.categories),
-    );
-  }, [loadExpenses]);
+    loadExpenses(page);
+  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    apiGet<CategoriesResponse>('/categories').then((data) => setCategories(data.categories));
+  }, []);
 
   async function confirmDelete() {
     if (!deleteTarget) return;
     try {
       await apiDelete(`/expenses/${deleteTarget.id}`);
-      setExpenses((prev) => prev.filter((e) => e.id !== deleteTarget.id));
       setDeleteTarget(null);
+      loadExpenses(page);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to delete expense');
       setDeleteTarget(null);
@@ -97,28 +141,6 @@ function Expenses() {
     dispatch(setEndDate(''));
     dispatch(setSortBy('date-desc'));
   }
-
-  const filteredExpenses = useMemo(() =>
-    expenses
-      .filter((expense) => {
-        const sl = search.toLowerCase();
-        return (
-          (expense.title.toLowerCase().includes(sl) ||
-            (expense.notes ?? '').toLowerCase().includes(sl)) &&
-          (category === '' || String(expense.category_id) === category) &&
-          (paymentMethod === '' || expense.payment_method === paymentMethod) &&
-          (startDate === '' || expense.expense_date >= startDate) &&
-          (endDate === '' || expense.expense_date <= endDate)
-        );
-      })
-      .sort((a, b) => {
-        if (sortBy === 'date-asc')     return a.expense_date.localeCompare(b.expense_date);
-        if (sortBy === 'amount-desc')  return b.amount - a.amount;
-        if (sortBy === 'amount-asc')   return a.amount - b.amount;
-        return b.expense_date.localeCompare(a.expense_date);
-      }),
-    [expenses, search, category, paymentMethod, sortBy, startDate, endDate],
-  );
 
   return (
     <>
@@ -147,7 +169,7 @@ function Expenses() {
         <section className="expenses-section">
           {error && <p className="error-message">{error}</p>}
 
-          {/* ── Sticky filter toolbar ── */}
+          {/* ── Filter toolbar ── */}
           <div className="expenses-toolbar">
             <div className="toolbar-search">
               <Search size={14} className="toolbar-search-icon" />
@@ -207,7 +229,7 @@ function Expenses() {
           {/* ── Results count ── */}
           {!loading && (
             <p className="results-count">
-              {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''}
+              {pagination.total} expense{pagination.total !== 1 ? 's' : ''}
               {hasActiveFilters ? ' matching filters' : ' total'}
             </p>
           )}
@@ -232,14 +254,14 @@ function Expenses() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredExpenses.length === 0 ? (
+                  {expenses.length === 0 ? (
                     <tr>
                       <td colSpan={6} style={{ color: 'var(--muted)', textAlign: 'center', padding: '32px' }}>
                         No expenses found.
                       </td>
                     </tr>
                   ) : (
-                    filteredExpenses.map((expense) => (
+                    expenses.map((expense) => (
                       <tr key={expense.id}>
                         <td>{expense.title}</td>
                         <td><span className="cat-badge">{expense.category_name}</span></td>
@@ -269,6 +291,31 @@ function Expenses() {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* ── Pagination ── */}
+          {pagination.totalPages > 1 && (
+            <div className="pagination">
+              <button
+                className="page-btn"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                aria-label="Previous page"
+              >
+                <ChevronLeft size={15} />
+              </button>
+              <span className="page-info">
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
+              <button
+                className="page-btn"
+                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                disabled={page === pagination.totalPages}
+                aria-label="Next page"
+              >
+                <ChevronRight size={15} />
+              </button>
             </div>
           )}
         </section>

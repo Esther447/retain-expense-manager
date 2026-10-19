@@ -9,6 +9,10 @@ const getDashboardInsights = async (req, res) => {
     let targetMonthEnd;
 
     if (month) {
+      // Validate YYYY-MM format
+      if (!/^\d{4}-\d{2}$/.test(month)) {
+        return res.status(400).json({ message: 'month query param must be in YYYY-MM format' });
+      }
       targetMonthStart = `${month}-01`;
       const [year, m] = month.split('-').map(Number);
       const nextMonth = m === 12

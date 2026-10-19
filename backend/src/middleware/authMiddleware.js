@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const pool = require('../config/db');
 
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -13,7 +14,18 @@ const authenticateToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+
+    // Re-fetch role from DB so revoked/demoted users are blocked immediately
+    const result = await pool.query(
+      'SELECT id, role FROM users WHERE id = $1',
+      [decoded.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: 'User no longer exists' });
+    }
+
+    req.user = { id: result.rows[0].id, role: result.rows[0].role };
     next();
   } catch (error) {
     return res.status(403).json({

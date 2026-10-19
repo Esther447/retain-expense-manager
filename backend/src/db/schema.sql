@@ -47,3 +47,10 @@ VALUES
     ('Shopping'),
     ('Utilities'),
     ('Other');
+
+-- Indexes for reliable query performance
+CREATE INDEX idx_expenses_user_id ON expenses(user_id);
+CREATE INDEX idx_expenses_user_date ON expenses(user_id, expense_date DESC);
+CREATE INDEX idx_expenses_category_id ON expenses(category_id);
+CREATE INDEX idx_budgets_user_id ON budgets(user_id);
+CREATE INDEX idx_budgets_user_month ON budgets(user_id, month);

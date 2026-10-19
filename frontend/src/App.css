@@ -1258,3 +1258,31 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cur
 }
 
 .modal-actions .btn-delete:hover { opacity: 0.88; }
+
+/* ── Pagination ───────────────────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.page-btn:hover:not(:disabled) { border-color: var(--cyan); background: rgba(6,182,212,0.08); }
+.page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.page-info { font-size: 13px; color: var(--muted); }
