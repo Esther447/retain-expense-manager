@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiPost } from '../services/api';
+import { Mail, Lock, User, UserPlus, Wallet } from 'lucide-react';
 
 interface SignupResponse {
   token: string;
@@ -40,29 +41,31 @@ function Signup() {
   };
 
   return (
-    <main className="auth-page">
-      {/* Left branding panel */}
-      <div className="auth-panel-left">
-        <div className="auth-brand-mark">Retain</div>
-        <h2>Start your financial journey today.</h2>
-        <p>
-          Join Retain to track expenses, manage budgets, and build
-          better financial habits — completely free.
-        </p>
-        <div className="auth-wave" />
+    <div className="auth-bg-page">
+      <div className="auth-bg-image" />
+      <div className="auth-bg-overlay" />
+
+      {/* Top-left logo */}
+      <div className="auth-top-logo">
+        <div className="auth-logo-icon"><Wallet size={16} /></div>
+        <span>Retain</span>
       </div>
 
-      {/* Right form panel */}
-      <div className="auth-panel-right">
-        <div className="auth-card">
-          <h1>Create Account</h1>
-          <p>Start managing your expenses today.</p>
+      {/* Card */}
+      <div className="auth-centered-card">
+        <div className="auth-avatar">
+          <UserPlus size={32} />
+        </div>
 
-          {error && <p className="auth-error">{error}</p>}
+        <h2 className="auth-centered-title">Create Account</h2>
 
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="name">Full Name</label>
+        {error && <p className="error-message" style={{ textAlign: 'center' }}>{error}</p>}
+
+        <form onSubmit={handleSubmit} className="auth-centered-form">
+          <div className="form-group">
+            <label htmlFor="name">Full Name</label>
+            <div className="input-icon-wrap">
+              <User size={15} className="input-icon" />
               <input
                 id="name"
                 type="text"
@@ -72,21 +75,27 @@ function Signup() {
                 required
               />
             </div>
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="email">Email</label>
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <div className="input-icon-wrap">
+              <Mail size={15} className="input-icon" />
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="jane.doe@example.com"
                 required
               />
             </div>
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <div className="input-icon-wrap">
+              <Lock size={15} className="input-icon" />
               <input
                 id="password"
                 type="password"
@@ -96,9 +105,12 @@ function Signup() {
                 required
               />
             </div>
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="confirm">Confirm Password</label>
+          <div className="form-group">
+            <label htmlFor="confirm">Confirm Password</label>
+            <div className="input-icon-wrap">
+              <Lock size={15} className="input-icon" />
               <input
                 id="confirm"
                 type="password"
@@ -108,18 +120,21 @@ function Signup() {
                 required
               />
             </div>
+          </div>
 
-            <button type="submit" disabled={loading}>
-              {loading ? 'Creating account…' : 'Create Account'}
-            </button>
-          </form>
+          <button type="submit" className="auth-submit-btn" disabled={loading}>
+            {loading ? 'Creating account…' : 'Create Account'}
+          </button>
+        </form>
 
-          <p className="auth-switch">
-            Already have an account? <Link to="/login">Sign in</Link>
-          </p>
-        </div>
+        <p className="auth-switch">
+          Already have an account?{' '}
+          <Link to="/login">Sign in</Link>
+        </p>
       </div>
-    </main>
+
+      <div />
+    </div>
   );
 }
 

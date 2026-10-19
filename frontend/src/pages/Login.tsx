@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiPost } from '../services/api';
+import { Mail, Lock, User, Wallet } from 'lucide-react';
 
 interface LoginResponse {
   message: string;
@@ -29,48 +30,53 @@ function Login() {
       login(response.user);
       navigate('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to sign in');
+      setError(err instanceof Error ? err.message : 'Invalid email or password.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="auth-page">
-      {/* Left branding panel */}
-      <div className="auth-panel-left">
-        <div className="auth-brand-mark">Retain</div>
-        <h2>Take control of your finances.</h2>
-        <p>
-          Track every expense, set monthly budgets, and gain clear insights
-          into your spending — all in one secure place.
-        </p>
-        <div className="auth-wave" />
+    <div className="auth-bg-page">
+      <div className="auth-bg-image" />
+      <div className="auth-bg-overlay" />
+
+      {/* Top-left logo */}
+      <div className="auth-top-logo">
+        <div className="auth-logo-icon"><Wallet size={16} /></div>
+        <span>Retain</span>
       </div>
 
-      {/* Right form panel */}
-      <div className="auth-panel-right">
-        <div className="auth-card">
-          <h1>Welcome Back</h1>
-          <p>Sign in to your account to continue.</p>
+      {/* Card */}
+      <div className="auth-centered-card">
+        <div className="auth-avatar">
+          <User size={32} />
+        </div>
 
-          {error && <p className="error-message">{error}</p>}
+        <h2 className="auth-centered-title">Login</h2>
 
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="email">Email</label>
+        {error && <p className="error-message" style={{ textAlign: 'center' }}>{error}</p>}
+
+        <form onSubmit={handleSubmit} className="auth-centered-form">
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <div className="input-icon-wrap">
+              <Mail size={15} className="input-icon" />
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="jane.doe@example.com"
                 required
               />
             </div>
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <div className="input-icon-wrap">
+              <Lock size={15} className="input-icon" />
               <input
                 id="password"
                 type="password"
@@ -80,18 +86,24 @@ function Login() {
                 required
               />
             </div>
+            <div className="auth-forgot">
+              <a href="#">Forgot password?</a>
+            </div>
+          </div>
 
-            <button type="submit" disabled={loading}>
-              {loading ? 'Signing in…' : 'Sign In'}
-            </button>
-          </form>
+          <button type="submit" className="auth-submit-btn" disabled={loading}>
+            {loading ? 'Logging in…' : 'Log in'}
+          </button>
+        </form>
 
-          <p className="auth-switch">
-            Don't have an account? <Link to="/signup">Create one</Link>
-          </p>
-        </div>
+        <p className="auth-switch">
+          Don't have an account?{' '}
+          <Link to="/signup">Sign up</Link>
+        </p>
       </div>
-    </main>
+
+      <div />
+    </div>
   );
 }
 
