@@ -4,12 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recha
 import { TrendingUp, Wallet, ArrowUpCircle, BarChart2, Plus, Target, List, Pencil, Trash2, ShieldAlert } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { apiGet, apiDelete } from '../services/api';
-
-interface DashboardSummary {
-  total_spending: number;
-  total_expenses: number;
-  average_expense: number;
-}
+import type { Expense } from '../types/Expense';
 
 interface BudgetInfo {
   id: number;
@@ -24,34 +19,13 @@ interface CategorySpending {
   expense_count: number;
 }
 
-interface HighestExpense {
-  id: number;
-  title: string;
-  amount: number;
-  category_name: string;
-  expense_date: string;
-}
-
-interface RecentExpense {
-  id: number;
-  title: string;
-  amount: number;
-  category_name: string;
-  expense_date: string;
-  payment_method: string;
-  category_id: number;
-  notes?: string;
-  updated_at?: string;
-  created_at?: string;
-}
-
 interface DashboardData {
-  summary: DashboardSummary;
+  summary: { total_spending: number; total_expenses: number; average_expense: number };
   budget: BudgetInfo | null;
   budget_remaining: number | null;
   spending_by_category: CategorySpending[];
-  highest_expense: HighestExpense | null;
-  recent_expenses: RecentExpense[];
+  highest_expense: Expense | null;
+  recent_expenses: Expense[];
 }
 
 const CHART_COLORS = [
@@ -124,7 +98,7 @@ function Dashboard() {
   const budgetAmount   = data?.budget ? Number(data.budget.amount) : 0;
   const budgetRemaining = data?.budget_remaining ?? null;
   const highestExpense = data?.highest_expense ?? null;
-  const recentExpenses = data?.recent_expenses ?? [];
+  const recentExpenses: Expense[] = data?.recent_expenses ?? [];
   const spendingByCategory = (data?.spending_by_category ?? []).filter(
     (c) => Number(c.total_amount) > 0,
   );

@@ -4,11 +4,7 @@ import Navbar from '../components/Navbar';
 import ExpenseForm from '../components/ExpenseForm';
 import type { ExpenseFormValues } from '../components/ExpenseForm';
 import { apiGet, apiPost } from '../services/api';
-import type { Category } from '../types/Expense';
-
-interface CategoriesResponse {
-  categories: Category[];
-}
+import type { Category, CategoriesResponse } from '../types/Expense';
 
 function AddExpense() {
   const navigate = useNavigate();

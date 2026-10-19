@@ -57,6 +57,7 @@ DB_NAME=retain_db
 DB_USER=retain_user
 DB_PASSWORD=your_database_password
 JWT_SECRET=your_jwt_secret
+CLIENT_URL=http://localhost:5173
 ```
 
 Create the database and run the schema:

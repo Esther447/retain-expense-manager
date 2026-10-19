@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pencil, Trash2, Plus, Search, X, ShieldAlert, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
 import Navbar from '../components/Navbar';
-import type { Expense, Category } from '../types/Expense';
+import type { Expense, Category, ExpensesResponse, CategoriesResponse } from '../types/Expense';
+import type { SortBy } from '../redux/expenseFilterSlice';
 import { apiGet, apiDelete } from '../services/api';
 import {
   setSearch,
@@ -13,12 +14,6 @@ import {
   setStartDate,
   setEndDate,
 } from '../redux/expenseFilterSlice';
-
-interface ExpensesResponse {
-  expenses: Expense[];
-  pagination: { page: number; limit: number; total: number; totalPages: number };
-}
-interface CategoriesResponse { categories: Category[]; }
 
 function DeleteExpenseModal({
   title,
@@ -47,7 +42,7 @@ function DeleteExpenseModal({
   );
 }
 
-const SORT_MAP: Record<string, { sort_by: string; sort_order: string }> = {
+const SORT_MAP: Record<SortBy, { sort_by: string; sort_order: string }> = {
   'date-desc':   { sort_by: 'expense_date', sort_order: 'DESC' },
   'date-asc':    { sort_by: 'expense_date', sort_order: 'ASC' },
   'amount-desc': { sort_by: 'amount',       sort_order: 'DESC' },
@@ -73,58 +68,67 @@ function Expenses() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadExpenses = useCallback((currentPage: number) => {
-    setLoading(true);
-    const { sort_by, sort_order } = SORT_MAP[sortBy] ?? SORT_MAP['date-desc'];
-
-    const params = new URLSearchParams({
-      page: String(currentPage),
-      limit: String(PAGE_LIMIT),
-      sort_by,
-      sort_order,
-    });
-    if (search)        params.set('search', search);
-    if (category)      params.set('category_id', category);
-    if (paymentMethod) params.set('payment_method', paymentMethod);
-    if (startDate)     params.set('start_date', startDate);
-    if (endDate)       params.set('end_date', endDate);
-
-    apiGet<ExpensesResponse>(`/expenses?${params.toString()}`)
-      .then((data) => {
-        setExpenses(data.expenses);
-        setPagination(data.pagination);
-        setError('');
-      })
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : 'Failed to load expenses'),
-      )
-      .finally(() => setLoading(false));
-  }, [search, category, paymentMethod, sortBy, startDate, endDate]);
-
-  // Debounce search; immediate for other filters
+  // Single effect: debounce search input, reset to page 1 on filter change
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    const delay = search ? 350 : 0;
     debounceRef.current = setTimeout(() => {
-      setPage(1);
-      loadExpenses(1);
-    }, search ? 350 : 0);
+      setLoading(true);
+      const { sort_by, sort_order } = SORT_MAP[sortBy];
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_LIMIT),
+        sort_by,
+        sort_order,
+      });
+      if (search)        params.set('search', search);
+      if (category)      params.set('category_id', category);
+      if (paymentMethod) params.set('payment_method', paymentMethod);
+      if (startDate)     params.set('start_date', startDate);
+      if (endDate)       params.set('end_date', endDate);
+
+      apiGet<ExpensesResponse>(`/expenses?${params.toString()}`)
+        .then((data) => {
+          setExpenses(data.expenses);
+          setPagination(data.pagination);
+          setError('');
+        })
+        .catch((err: unknown) =>
+          setError(err instanceof Error ? err.message : 'Failed to load expenses'),
+        )
+        .finally(() => setLoading(false));
+    }, delay);
+
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [search, category, paymentMethod, sortBy, startDate, endDate, loadExpenses]);
+  }, [search, category, paymentMethod, sortBy, startDate, endDate, page]);
 
-  useEffect(() => {
-    loadExpenses(page);
-  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  // Load categories once
   useEffect(() => {
     apiGet<CategoriesResponse>('/categories').then((data) => setCategories(data.categories));
   }, []);
+
+  // Reset to page 1 when filters change (not page itself)
+  const prevFiltersRef = useRef({ search, category, paymentMethod, sortBy, startDate, endDate });
+  useEffect(() => {
+    const prev = prevFiltersRef.current;
+    if (
+      prev.search !== search || prev.category !== category ||
+      prev.paymentMethod !== paymentMethod || prev.sortBy !== sortBy ||
+      prev.startDate !== startDate || prev.endDate !== endDate
+    ) {
+      setPage(1);
+      prevFiltersRef.current = { search, category, paymentMethod, sortBy, startDate, endDate };
+    }
+  }, [search, category, paymentMethod, sortBy, startDate, endDate]);
 
   async function confirmDelete() {
     if (!deleteTarget) return;
     try {
       await apiDelete(`/expenses/${deleteTarget.id}`);
       setDeleteTarget(null);
-      loadExpenses(page);
+      // Refresh current page
+      setPage((p) => p);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to delete expense');
       setDeleteTarget(null);
@@ -211,7 +215,10 @@ function Expenses() {
               aria-label="End date"
             />
 
-            <select value={sortBy} onChange={(e) => dispatch(setSortBy(e.target.value))}>
+            <select
+              value={sortBy}
+              onChange={(e) => dispatch(setSortBy(e.target.value as SortBy))}
+            >
               <option value="date-desc">Newest First</option>
               <option value="date-asc">Oldest First</option>
               <option value="amount-desc">Highest Amount</option>

@@ -3,12 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import ExpenseForm from '../components/ExpenseForm';
 import type { ExpenseFormValues } from '../components/ExpenseForm';
-import type { Expense, Category } from '../types/Expense';
+import type { Expense, Category, CategoriesResponse } from '../types/Expense';
 import { apiGet, apiPut } from '../services/api';
-
-interface CategoriesResponse {
-  categories: Category[];
-}
 
 function EditExpense() {
   const navigate = useNavigate();
