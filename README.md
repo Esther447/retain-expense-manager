@@ -4,7 +4,7 @@ A full-stack personal expense management web application built with React + Type
 
 **Live Demo:** [https://retain-expense-manager.vercel.app](https://retain-expense-manager.vercel.app)
 
-**API Base URL:** [https://retain-expense-manager-api.onrender.com/api](https://retain-expense-manager-api.onrender.com/api)
+**API Base URL:** [https://retain-expense-manager-5zmf.onrender.com/api](https://retain-expense-manager-5zmf.onrender.com/api)
 
 ---
 
