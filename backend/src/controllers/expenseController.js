@@ -1,75 +1,52 @@
 const pool = require('../config/db');
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const VALID_PAYMENT_METHODS = ['cash', 'mobile-money', 'card', 'bank'];
+
+function validateExpenseFields(title, amount, expense_date, payment_method) {
+  if (!title || !amount || !expense_date || !payment_method) {
+    return 'Title, amount, category, expense date, and payment method are required';
+  }
+  if (title.trim().length > 255) {
+    return 'Title must be 255 characters or fewer';
+  }
+  if (isNaN(Number(amount)) || Number(amount) <= 0) {
+    return 'Amount must be a positive number';
+  }
+  if (!DATE_RE.test(expense_date) || isNaN(Date.parse(expense_date))) {
+    return 'Expense date must be a valid date in YYYY-MM-DD format';
+  }
+  if (!VALID_PAYMENT_METHODS.includes(payment_method)) {
+    return 'Invalid payment method';
+  }
+  return null;
+}
+
 const createExpense = async (req, res) => {
   try {
-    const {
-      title,
-      amount,
-      category_id,
-      expense_date,
-      payment_method,
-      notes,
-    } = req.body;
+    const { title, amount, category_id, expense_date, payment_method, notes } = req.body;
 
-    if (
-      !title ||
-      !amount ||
-      !category_id ||
-      !expense_date ||
-      !payment_method
-    ) {
-      return res.status(400).json({
-        message:
-          'Title, amount, category, expense date, and payment method are required',
-      });
-    }
+    const validationError = validateExpenseFields(title, amount, expense_date, payment_method);
+    if (validationError) return res.status(400).json({ message: validationError });
 
-    if (isNaN(Number(amount)) || Number(amount) <= 0) {
-      return res.status(400).json({ message: 'Amount must be a positive number' });
-    }
+    if (!category_id) return res.status(400).json({ message: 'Category is required' });
 
-    const validPaymentMethods = ['cash', 'mobile-money', 'card', 'bank'];
-    if (!validPaymentMethods.includes(payment_method)) {
-      return res.status(400).json({ message: 'Invalid payment method' });
-    }
-
-    const category = await pool.query(
-      'SELECT id FROM categories WHERE id = $1',
-      [category_id]
-    );
-
+    const category = await pool.query('SELECT id FROM categories WHERE id = $1', [category_id]);
     if (category.rows.length === 0) {
-      return res.status(400).json({
-        message: 'Category not found',
-      });
+      return res.status(400).json({ message: 'Category not found' });
     }
 
     const result = await pool.query(
-      `INSERT INTO expenses
-       (user_id, title, amount, category_id, expense_date, payment_method, notes)
+      `INSERT INTO expenses (user_id, title, amount, category_id, expense_date, payment_method, notes)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [
-        req.user.id,
-        title,
-        amount,
-        category_id,
-        expense_date,
-        payment_method,
-        notes || null,
-      ]
+      [req.user.id, title.trim(), amount, category_id, expense_date, payment_method, notes || null]
     );
 
-    return res.status(201).json({
-      message: 'Expense created successfully',
-      expense: result.rows[0],
-    });
+    return res.status(201).json({ message: 'Expense created successfully', expense: result.rows[0] });
   } catch (error) {
     console.error('Create expense error:', error);
-
-    return res.status(500).json({
-      message: 'Server error while creating expense',
-    });
+    return res.status(500).json({ message: 'Server error while creating expense' });
   }
 };
 
@@ -153,16 +130,10 @@ const getExpenses = async (req, res) => {
 
     const result = await pool.query(
       `SELECT
-         e.id,
-         e.title,
-         e.amount,
-         e.category_id,
+         e.id, e.title, e.amount, e.category_id,
          c.name AS category_name,
-         e.expense_date,
-         e.payment_method,
-         e.notes,
-         e.created_at,
-         e.updated_at
+         e.expense_date, e.payment_method, e.notes,
+         e.created_at, e.updated_at
        FROM expenses e
        JOIN categories c ON c.id = e.category_id
        WHERE e.user_id = $1
@@ -183,10 +154,7 @@ const getExpenses = async (req, res) => {
     });
   } catch (error) {
     console.error('Get expenses error:', error);
-
-    return res.status(500).json({
-      message: 'Server error while fetching expenses',
-    });
+    return res.status(500).json({ message: 'Server error while fetching expenses' });
   }
 };
 
@@ -196,16 +164,10 @@ const getExpenseById = async (req, res) => {
 
     const result = await pool.query(
       `SELECT
-         e.id,
-         e.title,
-         e.amount,
-         e.category_id,
+         e.id, e.title, e.amount, e.category_id,
          c.name AS category_name,
-         e.expense_date,
-         e.payment_method,
-         e.notes,
-         e.created_at,
-         e.updated_at
+         e.expense_date, e.payment_method, e.notes,
+         e.created_at, e.updated_at
        FROM expenses e
        JOIN categories c ON c.id = e.category_id
        WHERE e.id = $1 AND e.user_id = $2`,
@@ -213,109 +175,48 @@ const getExpenseById = async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: 'Expense not found',
-      });
+      return res.status(404).json({ message: 'Expense not found' });
     }
 
-    return res.json({
-      expense: result.rows[0],
-    });
+    return res.json({ expense: result.rows[0] });
   } catch (error) {
     console.error('Get expense by ID error:', error);
-
-    return res.status(500).json({
-      message: 'Server error while fetching expense',
-    });
+    return res.status(500).json({ message: 'Server error while fetching expense' });
   }
 };
 
 const updateExpense = async (req, res) => {
   try {
     const { id } = req.params;
+    const { title, amount, category_id, expense_date, payment_method, notes } = req.body;
 
-    const {
-      title,
-      amount,
-      category_id,
-      expense_date,
-      payment_method,
-      notes,
-    } = req.body;
+    const validationError = validateExpenseFields(title, amount, expense_date, payment_method);
+    if (validationError) return res.status(400).json({ message: validationError });
 
-    if (
-      !title ||
-      !amount ||
-      !category_id ||
-      !expense_date ||
-      !payment_method
-    ) {
-      return res.status(400).json({
-        message:
-          'Title, amount, category, expense date, and payment method are required',
-      });
-    }
+    if (!category_id) return res.status(400).json({ message: 'Category is required' });
 
-    if (isNaN(Number(amount)) || Number(amount) <= 0) {
-      return res.status(400).json({ message: 'Amount must be a positive number' });
-    }
-
-    const validPaymentMethods = ['cash', 'mobile-money', 'card', 'bank'];
-    if (!validPaymentMethods.includes(payment_method)) {
-      return res.status(400).json({ message: 'Invalid payment method' });
-    }
-
-    const category = await pool.query(
-      'SELECT id FROM categories WHERE id = $1',
-      [category_id]
-    );
-
+    const category = await pool.query('SELECT id FROM categories WHERE id = $1', [category_id]);
     if (category.rows.length === 0) {
-      return res.status(400).json({
-        message: 'Category not found',
-      });
+      return res.status(400).json({ message: 'Category not found' });
     }
 
     const result = await pool.query(
       `UPDATE expenses
-       SET
-         title = $1,
-         amount = $2,
-         category_id = $3,
-         expense_date = $4,
-         payment_method = $5,
-         notes = $6,
-         updated_at = CURRENT_TIMESTAMP
+       SET title = $1, amount = $2, category_id = $3, expense_date = $4,
+           payment_method = $5, notes = $6, updated_at = CURRENT_TIMESTAMP
        WHERE id = $7 AND user_id = $8
        RETURNING *`,
-      [
-        title,
-        amount,
-        category_id,
-        expense_date,
-        payment_method,
-        notes || null,
-        id,
-        req.user.id,
-      ]
+      [title.trim(), amount, category_id, expense_date, payment_method, notes || null, id, req.user.id]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: 'Expense not found',
-      });
+      return res.status(404).json({ message: 'Expense not found' });
     }
 
-    return res.json({
-      message: 'Expense updated successfully',
-      expense: result.rows[0],
-    });
+    return res.json({ message: 'Expense updated successfully', expense: result.rows[0] });
   } catch (error) {
     console.error('Update expense error:', error);
-
-    return res.status(500).json({
-      message: 'Server error while updating expense',
-    });
+    return res.status(500).json({ message: 'Server error while updating expense' });
   }
 };
 
@@ -324,27 +225,18 @@ const deleteExpense = async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      `DELETE FROM expenses
-       WHERE id = $1 AND user_id = $2
-       RETURNING id`,
+      `DELETE FROM expenses WHERE id = $1 AND user_id = $2 RETURNING id`,
       [id, req.user.id]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: 'Expense not found',
-      });
+      return res.status(404).json({ message: 'Expense not found' });
     }
 
-    return res.json({
-      message: 'Expense deleted successfully',
-    });
+    return res.json({ message: 'Expense deleted successfully' });
   } catch (error) {
     console.error('Delete expense error:', error);
-
-    return res.status(500).json({
-      message: 'Server error while deleting expense',
-    });
+    return res.status(500).json({ message: 'Server error while deleting expense' });
   }
 };
 

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { TrendingUp, Wallet, ArrowUpCircle, BarChart2, Plus, Target, List, Pencil, Trash2 } from 'lucide-react';
+import { TrendingUp, Wallet, ArrowUpCircle, BarChart2, Plus, Target, List, Pencil, Trash2, ShieldAlert } from 'lucide-react';
 import Navbar from '../components/Navbar';
-import { apiGet } from '../services/api';
+import { apiGet, apiDelete } from '../services/api';
 
 interface DashboardSummary {
   total_spending: number;
@@ -68,15 +68,30 @@ function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
-  useEffect(() => {
+  function loadDashboard() {
     apiGet<DashboardData>('/dashboard/insights')
       .then(setData)
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : 'Failed to load dashboard'),
       )
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadDashboard();
   }, []);
+
+  async function handleDelete(id: number) {
+    try {
+      await apiDelete(`/expenses/${id}`);
+      setDeleteTargetId(null);
+      loadDashboard();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete expense');
+    }
+  }
 
   if (loading) {
     return (
@@ -100,6 +115,8 @@ function Dashboard() {
       </>
     );
   }
+
+  const currentMonthLabel = new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
   const totalSpent     = data?.summary.total_spending ?? 0;
   const totalExpenses  = data?.summary.total_expenses ?? 0;
@@ -130,11 +147,25 @@ function Dashboard() {
     <>
       <Navbar />
 
+      {deleteTargetId !== null && (
+        <div className="modal-overlay" onClick={() => setDeleteTargetId(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon"><ShieldAlert size={28} /></div>
+            <h3>Delete Expense</h3>
+            <p>Are you sure you want to delete this expense? This action cannot be undone.</p>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setDeleteTargetId(null)}>Cancel</button>
+              <button className="btn-delete" onClick={() => handleDelete(deleteTargetId)}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="dashboard">
         <header className="dashboard-header">
           <div>
             <h1>Dashboard</h1>
-            <p>Your personal finance overview.</p>
+            <p>Spending summary for <strong style={{ color: 'var(--text)' }}>{currentMonthLabel}</strong></p>
           </div>
           <button type="button" className="btn-primary" onClick={() => navigate('/expenses/add')}>
             <Plus size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -148,7 +179,7 @@ function Dashboard() {
             <div className="kpi-icon kpi-cyan"><TrendingUp size={18} /></div>
             <h2>Total Spent</h2>
             <p>{fmt(totalSpent)}</p>
-            <small>{totalExpenses} expenses total</small>
+            <small>{totalExpenses} expense{totalExpenses !== 1 ? 's' : ''} this month</small>
           </div>
 
           <div className="summary-card">
@@ -295,7 +326,7 @@ function Dashboard() {
                         <button
                           type="button"
                           className="action-button delete-button"
-                          onClick={() => navigate('/expenses')}
+                          onClick={() => setDeleteTargetId(expense.id)}
                           title="Delete"
                         >
                           <Trash2 size={13} />

@@ -21,7 +21,7 @@ function EditExpense() {
 
   useEffect(() => {
     if (!expense) {
-      navigate('/expenses');
+      navigate('/expenses', { replace: true });
       return;
     }
     apiGet<CategoriesResponse>('/categories').then((data) =>

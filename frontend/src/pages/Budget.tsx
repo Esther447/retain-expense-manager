@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { Trash2, ShieldAlert } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { apiGet, apiPost, apiPut, apiDelete } from '../services/api';
 
@@ -27,6 +28,7 @@ function Budget() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -74,14 +76,17 @@ function Budget() {
   };
 
   async function handleDeleteBudget(id: number) {
-    if (!window.confirm('Delete this budget?')) return;
     try {
       await apiDelete(`/budgets/${id}`);
+      setDeleteTargetId(null);
       loadData();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to delete budget');
+      setDeleteTargetId(null);
     }
   }
+
+  const currentMonthLabel = new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
   const totalSpent = data?.summary.total_spending ?? 0;
   const totalExpenses = data?.summary.total_expenses ?? 0;
@@ -103,6 +108,20 @@ function Budget() {
   return (
     <>
       <Navbar />
+
+      {deleteTargetId !== null && (
+        <div className="modal-overlay" onClick={() => setDeleteTargetId(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon"><ShieldAlert size={28} /></div>
+            <h3>Delete Budget</h3>
+            <p>Are you sure you want to delete this budget? This action cannot be undone.</p>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setDeleteTargetId(null)}>Cancel</button>
+              <button className="btn-delete" onClick={() => handleDeleteBudget(deleteTargetId)}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="budget-page">
         <header className="page-header">
@@ -147,7 +166,7 @@ function Budget() {
               </div>
 
               <div className="budget-card">
-                <h2>Budget Overview</h2>
+                <h2>Budget Overview — {currentMonthLabel}</h2>
 
                 <div className="budget-stat">
                   <span>Monthly Budget</span>
@@ -155,12 +174,12 @@ function Budget() {
                 </div>
 
                 <div className="budget-stat">
-                  <span>Total Spent</span>
+                  <span>Spent This Month</span>
                   <strong>RWF {Number(totalSpent).toLocaleString()}</strong>
                 </div>
 
                 <div className="budget-stat">
-                  <span>Total Expenses</span>
+                  <span>Expenses This Month</span>
                   <strong>{totalExpenses}</strong>
                 </div>
 
@@ -217,9 +236,9 @@ function Budget() {
                             <button
                               type="button"
                               className="action-button delete-button"
-                              onClick={() => handleDeleteBudget(b.id)}
+                              onClick={() => setDeleteTargetId(b.id)}
                             >
-                              Delete
+                              <Trash2 size={13} />
                             </button>
                           </td>
                         </tr>

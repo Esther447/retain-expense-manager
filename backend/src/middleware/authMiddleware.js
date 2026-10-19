@@ -13,9 +13,7 @@ const authenticateToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
     req.user = decoded;
-
     next();
   } catch (error) {
     return res.status(403).json({
@@ -30,7 +28,6 @@ const requireAdmin = (req, res, next) => {
       message: 'Admin access required',
     });
   }
-
   next();
 };
 

@@ -3,6 +3,27 @@ const pool = require('../config/db');
 const getDashboardInsights = async (req, res) => {
   try {
     const userId = req.user.id;
+    const { month } = req.query;
+
+    let targetMonthStart;
+    let targetMonthEnd;
+
+    if (month) {
+      targetMonthStart = `${month}-01`;
+      const [year, m] = month.split('-').map(Number);
+      const nextMonth = m === 12
+        ? `${year + 1}-01-01`
+        : `${year}-${String(m + 1).padStart(2, '0')}-01`;
+      targetMonthEnd = nextMonth;
+    } else {
+      const now = new Date();
+      const year = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      targetMonthStart = `${year}-${m}-01`;
+      const nextYear = now.getMonth() === 11 ? year + 1 : year;
+      const nextM = now.getMonth() === 11 ? '01' : String(now.getMonth() + 2).padStart(2, '0');
+      targetMonthEnd = `${nextYear}-${nextM}-01`;
+    }
 
     const [
       totalResult,
@@ -17,8 +38,8 @@ const getDashboardInsights = async (req, res) => {
            COUNT(*) AS total_expenses,
            COALESCE(AVG(amount), 0) AS average_expense
          FROM expenses
-         WHERE user_id = $1`,
-        [userId]
+         WHERE user_id = $1 AND expense_date >= $2 AND expense_date < $3`,
+        [userId, targetMonthStart, targetMonthEnd]
       ),
       pool.query(
         `SELECT
@@ -30,32 +51,29 @@ const getDashboardInsights = async (req, res) => {
          LEFT JOIN expenses e
            ON e.category_id = c.id
            AND e.user_id = $1
+           AND e.expense_date >= $2
+           AND e.expense_date < $3
          GROUP BY c.id, c.name
          ORDER BY total_amount DESC`,
-        [userId]
+        [userId, targetMonthStart, targetMonthEnd]
       ),
       pool.query(
         `SELECT
-           e.id,
-           e.title,
-           e.amount,
+           e.id, e.title, e.amount,
            c.name AS category_name,
            e.expense_date
          FROM expenses e
          JOIN categories c ON c.id = e.category_id
-         WHERE e.user_id = $1
+         WHERE e.user_id = $1 AND e.expense_date >= $2 AND e.expense_date < $3
          ORDER BY e.amount DESC
          LIMIT 1`,
-        [userId]
+        [userId, targetMonthStart, targetMonthEnd]
       ),
       pool.query(
         `SELECT
-           e.id,
-           e.title,
-           e.amount,
+           e.id, e.title, e.amount,
            c.name AS category_name,
-           e.expense_date,
-           e.payment_method
+           e.expense_date, e.payment_method
          FROM expenses e
          JOIN categories c ON c.id = e.category_id
          WHERE e.user_id = $1
@@ -66,39 +84,40 @@ const getDashboardInsights = async (req, res) => {
       pool.query(
         `SELECT id, month, amount
          FROM budgets
-         WHERE user_id = $1
-         ORDER BY month DESC
-         LIMIT 1`,
-        [userId]
+         WHERE user_id = $1 AND month = $2`,
+        [userId, targetMonthStart]
       ),
     ]);
 
     const totalSpending = Number(totalResult.rows[0].total_spending);
-    const currentBudget = budgetResult.rows[0]
-      ? Number(budgetResult.rows[0].amount)
-      : 0;
+    const currentBudget = budgetResult.rows[0] ? Number(budgetResult.rows[0].amount) : 0;
+
+    let budgetStatus = 'within';
+    if (currentBudget > 0) {
+      const ratio = totalSpending / currentBudget;
+      if (ratio > 1) budgetStatus = 'over';
+      else if (ratio >= 0.8) budgetStatus = 'approaching';
+    }
 
     return res.json({
+      selected_month: targetMonthStart.substring(0, 7),
       summary: {
         total_spending: totalSpending,
         total_expenses: Number(totalResult.rows[0].total_expenses),
-        average_expense: Number(
-          Number(totalResult.rows[0].average_expense).toFixed(2)
-        ),
+        average_expense: Number(Number(totalResult.rows[0].average_expense).toFixed(2)),
       },
       budget: budgetResult.rows[0] || null,
-      budget_remaining:
-        currentBudget > 0 ? currentBudget - totalSpending : null,
+      budget_remaining: currentBudget > 0
+        ? Number((currentBudget - totalSpending).toFixed(2))
+        : null,
+      budget_status: budgetStatus,
       spending_by_category: categoryResult.rows,
       highest_expense: highestResult.rows[0] || null,
       recent_expenses: recentResult.rows,
     });
   } catch (error) {
     console.error('Dashboard insights error:', error);
-
-    return res.status(500).json({
-      message: 'Server error while fetching dashboard insights',
-    });
+    return res.status(500).json({ message: 'Server error while fetching dashboard insights' });
   }
 };
 
@@ -158,9 +177,7 @@ const getAdminInsights = async (req, res) => {
       ),
       pool.query(
         `SELECT
-           e.id,
-           e.title,
-           e.amount,
+           e.id, e.title, e.amount,
            u.name AS user_name,
            c.name AS category_name,
            e.expense_date
@@ -193,10 +210,7 @@ const getAdminInsights = async (req, res) => {
     });
   } catch (error) {
     console.error('Admin insights error:', error);
-
-    return res.status(500).json({
-      message: 'Server error while fetching admin insights',
-    });
+    return res.status(500).json({ message: 'Server error while fetching admin insights' });
   }
 };
 

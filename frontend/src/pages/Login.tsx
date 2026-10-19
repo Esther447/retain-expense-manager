@@ -37,47 +37,59 @@ function Login() {
 
   return (
     <main className="auth-page">
-      <div className="auth-glow" />
-      <div className="auth-card">
-        <div className="auth-brand">Retain</div>
-        <h1>Welcome Back</h1>
-        <p>Sign in to your account to continue.</p>
-
-        {error && <p className="error-message">{error}</p>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-          </div>
-
-          <button type="submit" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign In'}
-          </button>
-        </form>
-
+      {/* Left branding panel */}
+      <div className="auth-panel-left">
+        <div className="auth-brand-mark">Retain</div>
+        <h2>Take control of your finances.</h2>
         <p>
-          Don't have an account? <Link to="/signup">Create one</Link>
+          Track every expense, set monthly budgets, and gain clear insights
+          into your spending — all in one secure place.
         </p>
+        <div className="auth-wave" />
+      </div>
+
+      {/* Right form panel */}
+      <div className="auth-panel-right">
+        <div className="auth-card">
+          <h1>Welcome Back</h1>
+          <p>Sign in to your account to continue.</p>
+
+          {error && <p className="error-message">{error}</p>}
+
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <button type="submit" disabled={loading}>
+              {loading ? 'Signing in…' : 'Sign In'}
+            </button>
+          </form>
+
+          <p className="auth-switch">
+            Don't have an account? <Link to="/signup">Create one</Link>
+          </p>
+        </div>
       </div>
     </main>
   );
