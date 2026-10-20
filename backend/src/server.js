@@ -31,8 +31,8 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// Handle preflight OPTIONS before any route
-app.options('*', cors(corsOptions));
+// Handle preflight OPTIONS before any route (path-to-regexp v8 requires (.*) not *)
+app.options('(.*)', cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/api/auth', authRoutes);
