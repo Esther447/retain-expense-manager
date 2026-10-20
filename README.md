@@ -2,7 +2,7 @@
 
 A full-stack personal expense management web application built with React + TypeScript (frontend) and Node.js + Express + PostgreSQL (backend).
 
-**Live Demo:** [https://retain-expense-manager-39ggz07hs-esthers-projects-98984089.vercel.app](https://retain-expense-manager-39ggz07hs-esthers-projects-98984089.vercel.app)
+**Live Demo:** [https://retain-expense-manager-39ggz07hs-esthers-projects-98984089.vercel.app](https://retain-expense-manager-delta.vercel.app/)
 
 **API Base URL:** [https://retain-expense-manager-5zmf.onrender.com/api](https://retain-expense-manager-5zmf.onrender.com/api)
 
