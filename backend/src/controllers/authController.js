@@ -86,7 +86,10 @@ const signin = async (req, res) => {
     });
   } catch (error) {
     console.error('Signin error:', error);
-    return res.status(500).json({ message: 'Server error during signin' });
+    return res.status(500).json({
+      message: 'Server error during signin',
+      detail: error instanceof Error ? error.message : String(error),
+    });
   }
 };
 
