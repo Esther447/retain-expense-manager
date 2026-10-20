@@ -20,7 +20,6 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow no-origin requests (Postman, curl) and any vercel.app preview deploy
     if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
       return callback(null, true);
     }
@@ -29,10 +28,11 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  // cors() handles OPTIONS preflight internally — no app.options() route needed
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
 
-// Handle preflight OPTIONS before any route (path-to-regexp v8 requires (.*) not *)
-app.options('(.*)', cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/api/auth', authRoutes);
